@@ -5,7 +5,7 @@
    - Laisse passer les appels API (POST / cross-origin) au réseau
    Incrémente CACHE pour forcer la mise à jour après modif.
    ===================================================================== */
-const CACHE = "tifo-v1";
+const CACHE = "tifo-v2";
 const SHELL = [
   "./",
   "./index.html",
