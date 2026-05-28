@@ -835,6 +835,53 @@ button {
   width: 100%;
   max-width: 220px;
 }
+
+/* ── Compteur participants ── */
+.session-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+.session-counter .cnt-num {
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.75);
+  letter-spacing: .03em;
+}
+.session-counter .cnt-num.cnt-full { background:rgba(255,59,48,.18); color:#FF8078; }
+.session-counter .cnt-num.cnt-warn { background:rgba(255,149,0,.15); color:#FF9500; }
+.session-counter .cnt-num.cnt-ok   { background:rgba(0,210,106,.12); color:#00D26A; }
+.counter-bar {
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.counter-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .4s ease;
+}
+.btn-inscrits {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  color: rgba(255,255,255,.65);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .02em;
+  min-height: 48px;
+  touch-action: manipulation;
+}
+.btn-inscrits:active { transform: scale(.98); }
 </style>
 
   <!-- ===== PWA + API (ajouté pour transformer la web-app en appli installable) ===== -->
@@ -963,6 +1010,7 @@ button {
             <option>Session en autonomie</option>
           </select>
           <input id="as-telegram" type="url" placeholder="Lien Telegram" style="flex:1;min-width:120px;padding:10px 12px;border:1.5px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;font-size:13px;outline:none" />
+          <input id="as-max" type="number" min="0" max="999" placeholder="👥 Max participants" title="Nombre maximum de participants (0 = illimité)" style="width:160px;padding:10px 12px;border:1.5px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;font-size:13px;outline:none" />
           <div style="display:flex;border:1.5px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden">
             <button id="as-type-sp" onclick="setAdminType('Sans Pizza')" style="padding:10px 12px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer">Sans Pizza</button>
             <button id="as-type-p" onclick="setAdminType('Pizza')" style="padding:10px 12px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:12px;font-weight:600;cursor:pointer">🍕 Pizza</button>
@@ -1211,6 +1259,10 @@ button {
           <option value="Pizza">🍕 Pizza</option>
         </select>
       </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:4px">👥 Max participants <span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;opacity:.6">(0 = illimité)</span></label>
+        <input id="ses-edit-max" type="number" min="0" max="999" placeholder="ex: 25" style="width:100%;padding:11px 13px;border:1.5px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;font-size:14px;outline:none" />
+      </div>
     </div>
     <div style="display:flex;gap:9px">
       <button onclick="closeSessEdit()" style="flex:1;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-size:15px;font-weight:700;cursor:pointer">Annuler</button>
@@ -1430,20 +1482,86 @@ function renderUpcoming(sessions){
       actionBtn='<button class="btn btn-primary" onclick="ouvrirModalInscription(\''+s.id+'\')">Je m\'inscris →</button>';
     }
     const cardClass=s.myStatus==="PRÉSENT"?"present":s.myStatus==="INSCRIT"?"inscrit":"";
+    // Compteur participants
+    var nbInscrits=s.inscritCount||0;
+    var maxP=s.maxParticipants||0;
+    var pct=maxP>0?Math.min(100,Math.round(nbInscrits/maxP*100)):0;
+    var cntClass=maxP>0?(pct>=100?"cnt-full":pct>=80?"cnt-warn":"cnt-ok"):"";
+    var cntLabel=maxP>0?(nbInscrits+"/"+maxP):(nbInscrits+" inscrit"+(nbInscrits>1?"s":""));
+    var cntBarColor=maxP>0?(pct>=100?"#FF3B30":pct>=80?"#FF9500":"#00D26A"):"var(--blue)";
+    var counterHtml='<div class="session-counter"><span class="cnt-num '+cntClass+'">👥 '+cntLabel+'</span></div>'
+      +(maxP>0?'<div class="counter-bar"><div class="counter-bar-fill" style="width:'+pct+'%;background:'+cntBarColor+'"></div></div>':'');
+    var listeBtn='<button class="btn-inscrits" onclick="voirInscrits(\''+s.id+'\',\''+esc(s.nom)+'\')">'
+      +'👥 Liste des inscrits'+(maxP>0?' ('+nbInscrits+'/'+maxP+')':nbInscrits?' ('+nbInscrits+')':'')+'</button>';
     return '<div class="session-card '+cardClass+'">'
       +'<div class="session-header">'
-      +'<div><div class="session-name">'+esc(s.nom)+'</div>'
+      +'<div style="flex:1;min-width:0"><div class="session-name">'+esc(s.nom)+'</div>'
       +'<div class="session-meta">'
       +(s.date?'<span class="meta-item">📅 '+s.date+'</span>':'')
       +(s.heure?'<span class="meta-item">🕐 '+s.heure+'</span>':'')
       +(s.lieu?'<span class="meta-item">📍 '+s.lieu+'</span>':'')
-      +'</div></div>'
-      +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">'
+      +'</div>'
+      +counterHtml
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">'
       +statutBadge+(isPizza?'<span class="badge badge-pizza">🍕 Pizza</span>':'')
       +statusBadge+'</div></div>'
-      +(actionBtn?'<div class="session-actions">'+actionBtn+'</div>':'')
+      +'<div class="session-actions">'
+      +listeBtn
+      +(actionBtn?actionBtn:'')
+      +'</div>'
       +'</div>';
   }).join('');
+}
+
+// ── Voir les inscrits ────────────────────────────────────────
+function voirInscrits(sessionId, sessionNom){
+  document.getElementById("inscrits-title").textContent = "👥 " + sessionNom;
+  document.getElementById("inscrits-count").textContent = "";
+  document.getElementById("inscrits-content").innerHTML = '<div class="empty-state" style="padding:24px 0"><div>⏳</div>Chargement…</div>';
+  document.getElementById("modal-inscrits").classList.add("show");
+  google.script.run
+    .withSuccessHandler(function(r){
+      if(!r||!r.ok){
+        document.getElementById("inscrits-content").innerHTML='<div class="empty-state"><div>⚠️</div>'+(r&&r.msg?r.msg:'Erreur')+'</div>';
+        return;
+      }
+      var inscriptions=(r.inscriptions||[]).filter(function(p){return p.statut!=="ANNULÉ";});
+      var presents=inscriptions.filter(function(p){return p.statut==="PRÉSENT";}).length;
+      var inscrits=inscriptions.filter(function(p){return p.statut==="INSCRIT";}).length;
+      var max=r.maxParticipants||0;
+      var total=inscriptions.length;
+      document.getElementById("inscrits-count").textContent=
+        total+(max>0?" / "+max:"")+" inscrit"+(total>1?"s":"")
+        +(presents?" · "+presents+" présent"+(presents>1?"s":""):"");
+      if(!total){
+        document.getElementById("inscrits-content").innerHTML='<div class="empty-state" style="padding:24px 0"><div>👥</div>Aucun inscrit</div>';
+        return;
+      }
+      var STATUS_ICON={"PRÉSENT":"✅","INSCRIT":"✓","NO_SHOW":"✗","ANNULÉ":"✕"};
+      var STATUS_COLOR={"PRÉSENT":"#00D26A","INSCRIT":"#8090FF","NO_SHOW":"#FF8078","ANNULÉ":"rgba(255,255,255,.3)"};
+      var h="";
+      inscriptions.forEach(function(p,i){
+        var ic=STATUS_ICON[p.statut]||"·";
+        var col=STATUS_COLOR[p.statut]||"#fff";
+        var pizza=p.pizza&&p.pizza!=="Je ne mange pas"&&p.pizza!=="Non"
+          ?'<span style="font-size:10px;color:#FF9500;display:block;margin-top:1px">🍕 '+esc(p.pizza)+'</span>':'';
+        h+='<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">'
+          +'<div style="width:24px;height:24px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+(i+1)+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:14px;font-weight:600">'+esc(p.prenom)+" "+esc(p.nom)+'</div>'
+          +'<div style="font-size:11px;color:rgba(255,255,255,.4)">'+esc(p.section||"")+'</div>'
+          +pizza
+          +'</div>'
+          +'<span style="font-size:13px;font-weight:700;color:'+col+'">'+ic+' '+esc(p.statut)+'</span>'
+          +'</div>';
+      });
+      document.getElementById("inscrits-content").innerHTML=h;
+    })
+    .withFailureHandler(function(e){
+      document.getElementById("inscrits-content").innerHTML='<div class="empty-state"><div>⚠️</div>'+(e&&e.message?e.message:'Erreur')+'</div>';
+    })
+    .getSessionDetails(token, sessionId);
 }
 
 // ── Inscription ──────────────────────────────────────────────
@@ -1775,6 +1893,7 @@ function admEditSession(btn) {
       document.getElementById("ses-edit-lieu").value = s.lieu||"";
       document.getElementById("ses-edit-telegram").value = s.telegramLink||"";
       document.getElementById("ses-edit-type").value = s.type||"Sans Pizza";
+      document.getElementById("ses-edit-max").value = s.maxParticipants||"";
     }
   }
   document.getElementById("modal-edit-session").classList.add("show");
@@ -1848,7 +1967,8 @@ function saveSessEdit() {
       document.getElementById("ses-edit-date").value,
       document.getElementById("ses-edit-heure").value,
       document.getElementById("ses-edit-lieu").value,
-      document.getElementById("ses-edit-telegram").value.trim()
+      document.getElementById("ses-edit-telegram").value.trim(),
+      parseInt(document.getElementById("ses-edit-max").value)||0
     );
 }
 
@@ -1928,6 +2048,7 @@ function adminCreateSession() {
   var heure=document.getElementById("as-heure").value;
   var lieu=document.getElementById("as-lieu").value;
   var telegram=document.getElementById("as-telegram").value.trim();
+  var maxP=parseInt(document.getElementById("as-max").value)||0;
   if(!nom||!date){alert("Nom et date requis.");return;}
   google.script.run
     .withSuccessHandler(function(r){
@@ -1937,10 +2058,11 @@ function adminCreateSession() {
         document.getElementById("as-heure").value="";
         document.getElementById("as-lieu").value="";
         document.getElementById("as-telegram").value="";
+        document.getElementById("as-max").value="";
         loadAdminSessions();
       } else alert(r&&r.msg?r.msg:"Erreur création session");
     })
-    .createSession(token,nom,adminSessionType,date,"",heure,lieu,telegram);
+    .createSession(token,nom,adminSessionType,date,"",heure,lieu,telegram,maxP);
 }
 function loadAdminSessions() {
   if(!isAdmin){ return; }
@@ -2591,5 +2713,18 @@ function goToAdmin() {
 // PWA: navigation interne (reste en mode standalone)
 window.goToAdmin = function(){ location.href = 'admin.html'; };
 </script>
+
+<!-- ═══ Modal liste des inscrits ═══════════════════════════════ -->
+<div class="overlay" id="modal-inscrits" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;gap:10px">
+      <div class="modal-title" id="inscrits-title" style="margin-bottom:0;font-size:22px">👥 Inscrits</div>
+      <div id="inscrits-count" style="font-size:13px;color:rgba(255,255,255,.45);white-space:nowrap"></div>
+    </div>
+    <div id="inscrits-content"></div>
+    <button onclick="document.getElementById('modal-inscrits').classList.remove('show')" style="width:100%;margin-top:16px;padding:13px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.5);font-size:15px;font-weight:700;cursor:pointer">Fermer</button>
+  </div>
+</div>
+
 </body>
 </html>
