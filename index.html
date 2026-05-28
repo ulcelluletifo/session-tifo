@@ -860,7 +860,7 @@ button {
       <div class="app-sub">Saison 2026 — 2027</div>
       <div id="login-alert" class="alert"></div>
       <div class="field"><label>Nom</label><input id="l-nom" type="text" placeholder="ex. MARTIN" autocomplete="family-name" autocapitalize="characters" autocomplete="family-name" /></div>
-      <div class="field"><label>Prénom</label><input id="l-prenom" type="text" placeholder="ex. ALEXANDRE" autocomplete="given-name" autocapitalize="characters" autocomplete="given-name" /></div>
+      <div class="field"><label>Prénom</label><input id="l-prenom" type="text" placeholder="ex. SOPHIE" autocomplete="given-name" autocapitalize="characters" autocomplete="given-name" /></div>
       <div class="field"><label>Mot de passe</label><input id="l-pw" type="password" placeholder="••••••••" /></div>
       <button id="l-btn" class="btn btn-primary" onclick="doLogin()">Se connecter →</button>
       <div class="register-link">Pas encore inscrit ? <button onclick="go('screen-register')">S'inscrire</button></div>
@@ -875,8 +875,8 @@ button {
     <div id="register-alert" class="alert"></div>
     <div style="font-size:36px;letter-spacing:.05em;margin-bottom:20px">Inscription</div>
     <div class="field"><label>Nom</label><input id="rg-nom" type="text" placeholder="ex. MARTIN" /></div>
-    <div class="field"><label>Prénom</label><input id="rg-prenom" type="text" placeholder="ex. ALEXANDRE" /></div>
-    <div class="field"><label>Nom Telegram</label><input id="rg-telegram" type="text" placeholder="ex. @ALEXANDRE_m" /></div>
+    <div class="field"><label>Prénom</label><input id="rg-prenom" type="text" placeholder="ex. SOPHIE" /></div>
+    <div class="field"><label>Nom Telegram</label><input id="rg-telegram" type="text" placeholder="ex. @sophie_m" /></div>
     <div class="field" style="margin-bottom:6px"><label>Section</label></div>
     <div class="section-list" id="rg-sections">
       <button class="section-opt" onclick="selSection(this,'Draft')">Draft</button>
@@ -1336,7 +1336,9 @@ function doLogin(){
 
 function doLogout(){
   google.script.run.logout(token);
-  token=""; go("screen-login");
+  token=""; isAdmin=false; userId="";
+  document.getElementById("tab-btn-admin").style.display="none";
+  go("screen-login");
   document.getElementById("l-pw").value="";
 }
 
@@ -1377,6 +1379,8 @@ function go(id){
   window.scrollTo(0,0);
 }
 function switchTab(tab){
+  // Sécurité : onglet admin accessible uniquement aux admins
+  if(tab==="admin" && !isAdmin){ return; }
   document.querySelectorAll(".tab-item").forEach(function(b){b.classList.remove("active");});
   document.querySelectorAll(".tab-content").forEach(function(c){c.classList.remove("active");});
   var tabs=["upcoming","past","calendar","profil","admin"];
@@ -1743,42 +1747,7 @@ function adminCreateSession() {
     .createSession(token, nom, adminSessionType, date, "", heure, lieu, telegram);
 }
 
-function loadAdminSessions() {
-  var list = document.getElementById("adm-sess-list");
-  if(!list) return;
-  list.innerHTML = '<div class="empty-state"><div>⏳</div>Chargement…</div>';
-  google.script.run
-    .withSuccessHandler(function(r){
-      if(!r||!r.sessions){list.innerHTML='<div class="empty-state"><div>⚠️</div>Erreur</div>';return;}
-      var open = r.sessions.filter(function(s){return s.statut==="OUVERTE";}).length;
-      document.getElementById("adm-sess-count").textContent = open+" ouverte"+(open>1?"s":"")+" · "+r.sessions.length+" au total";
-      if(!r.sessions.length){list.innerHTML='<div class="empty-state"><div>📋</div>Aucune session</div>';return;}
-      var html2 = "";
-      r.sessions.forEach(function(s,idx) {
-        var isOpen=s.statut==="OUVERTE", isPlan=s.statut==="PLANIFIÉE";
-        var dotColor=isOpen?"#00D26A":isPlan?"#8090FF":"rgba(255,255,255,.2)";
-        var codeHtml=isOpen?('<span style="font-size:22px;font-weight:700;color:#00D26A;margin-left:8px;letter-spacing:.15em">'+s.code+'</span>'):"";
-        html2+='<div class="session-card" style="margin-bottom:8px" data-sid="'+esc(s.id)+'" data-open="'+isOpen+'">'
-          +'<div class="session-header"><div>'
-          +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="width:8px;height:8px;border-radius:50%;background:'+dotColor+';display:inline-block"></span>'
-          +'<span class="session-name">'+esc(s.nom)+'</span>'+codeHtml
-          +'</div>'
-          +'<div class="session-meta">'+(s.date?"📅 "+s.date+" ":"")+(s.heure?"🕐 "+s.heure+" ":"")+(s.lieu?"📍 "+s.lieu:"")+'</div>'
-          +'</div>'
-          +'<div>'
-          +(isOpen
-            ?'<button class="btn btn-sm" style="background:rgba(255,59,48,.15);color:#FF8078;border:1px solid rgba(255,59,48,.3);width:auto" onclick="admAction(this)">Fermer</button>'
-            :'<button class="btn btn-sm" style="background:rgba(0,210,106,.1);color:#00D26A;border:1px solid rgba(0,210,106,.3);width:auto" onclick="admAction(this)">Ouvrir</button>')
-          +'</div></div></div>';
-      });
-      list.innerHTML=html2;
-    })
-    .withFailureHandler(function(e){list.innerHTML='<div class="empty-state"><div>⚠️</div>'+(e&&e.message?e.message:'Erreur')+'</div>';})
-    .getSessionsWithStats(token);
-}
 
-var _sessEditCache = {};
 function admEditSession(btn) {
   var card = btn.closest("[data-sid]");
   var sid = card.getAttribute("data-sid");
@@ -1974,6 +1943,7 @@ function adminCreateSession() {
     .createSession(token,nom,adminSessionType,date,"",heure,lieu,telegram);
 }
 function loadAdminSessions() {
+  if(!isAdmin){ return; }
   var list=document.getElementById("adm-sess-list");
   if(!list) return;
   list.innerHTML='<div class="empty-state"><div>⏳</div>Chargement…</div>';
@@ -2164,6 +2134,7 @@ function admAction(btn) {
 
 // ── Participants admin ────────────────────────────────────────
 function loadAdminParts() {
+  if(!isAdmin){ return; }
   document.getElementById("adm-part-list").innerHTML='<div class="empty-state"><div>⏳</div>Chargement…</div>';
   google.script.run
     .withSuccessHandler(function(data){
@@ -2317,6 +2288,7 @@ function confirmAdminToggle() {
 
 // ── Stats admin ───────────────────────────────────────────────
 function loadAdminStats() {
+  if(!isAdmin){ return; }
   var c=document.getElementById("adm-stats-content");
   c.innerHTML='<div class="empty-state"><div>⏳</div>Calcul…</div>';
   google.script.run
@@ -2369,6 +2341,7 @@ function loadAdminStats() {
 
 // ── Matchs PFC admin ──────────────────────────────────────────
 function loadAdminMatchs() {
+  if(!isAdmin){ return; }
   var list=document.getElementById("adm-match-list");
   list.innerHTML='<div class="empty-state"><div>⏳</div>Chargement…</div>';
   google.script.run
