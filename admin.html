@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Session Tifo — Admin V3</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#07003D;--blue:#1700D1;--white:#fff;--glass:rgba(255,255,255,.06);--border:rgba(255,255,255,.1);--open:#00D26A;--pizza:#FF9500;--red:#FF3B30}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:linear-gradient(160deg,#000 0%,#07005C 100%);min-height:100vh;color:#fff}
+
+/* LOGIN */
+#screen-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{background:var(--glass);border:1px solid var(--border);border-radius:20px;padding:40px 32px;width:100%;max-width:360px;text-align:center}
+.logo-img{width:64px;height:64px;object-fit:contain;border-radius:12px;margin-bottom:16px}
+.login-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.05em;margin-bottom:4px}
+.login-sub{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:24px}
+.pin-display{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:.3em;height:56px;margin-bottom:18px}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:260px;margin:0 auto 12px}
+.pin-btn{padding:16px;border-radius:10px;border:1.5px solid var(--border);background:var(--glass);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:22px;cursor:pointer;transition:all .15s}
+.pin-btn:active{transform:scale(.92);background:rgba(23,0,209,.3)}
+.pin-btn.wide{grid-column:span 2}
+.pin-btn.confirm{background:var(--blue);border-color:var(--blue)}
+.login-error{color:#FF8078;font-size:13px;margin-top:10px;display:none}
+
+/* ADMIN */
+#screen-admin{display:none}
+.topbar{background:rgba(0,0,0,.4);border-bottom:1px solid var(--border);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:.05em}
+.badge-admin{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--blue);color:#fff;padding:2px 8px;border-radius:4px}
+.badge-version{font-size:10px;font-weight:700;letter-spacing:.08em;background:rgba(255,149,0,.2);color:#FF9500;padding:2px 8px;border-radius:4px}
+.btn-home{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.btn-home:hover{background:rgba(255,255,255,.1);color:#fff}
+
+.main{max-width:960px;margin:0 auto;padding:24px 16px}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.05);border-radius:10px;padding:4px;width:fit-content;margin-bottom:22px}
+.tab-btn{padding:8px 16px;border-radius:7px;border:none;background:transparent;color:rgba(255,255,255,.4);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.tab-btn.active{background:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(23,0,209,.4)}
+.tab{display:none}
+.tab.active{display:block}
+
+/* CARDS */
+.card{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px}
+.card-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:14px}
+
+/* FORM */
+.form-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.f-input{padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;background:rgba(255,255,255,.07);color:#fff;font-family:'Barlow',sans-serif;font-size:14px;outline:none;flex:1;min-width:150px}
+.f-input::placeholder{color:rgba(255,255,255,.25)}
+.f-input:focus{border-color:var(--blue)}
+.f-input option{background:#06003A;color:#fff}
+select.f-input{color:#fff}
+select.f-input option{background:#06003A;color:#fff}
+select.f-input option:first-child{color:rgba(255,255,255,.4)}
+.f-input.narrow{flex:0;min-width:120px}
+.type-toggle{display:flex;background:rgba(255,255,255,.05);border:1.5px solid var(--border);border-radius:9px;overflow:hidden}
+.type-btn{padding:11px 16px;border:none;background:transparent;color:rgba(255,255,255,.5);font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.type-btn.active{background:var(--blue);color:#fff}
+.btn-create{padding:11px 20px;border-radius:9px;border:none;background:var(--blue);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(23,0,209,.4);white-space:nowrap;transition:all .15s}
+.btn-create:disabled{opacity:.4;cursor:not-allowed}
+
+/* SESSIONS */
+.session-item{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:9px;display:flex;align-items:center;gap:14px}
+.session-item.open{border-color:rgba(0,210,106,.3);background:rgba(0,210,106,.04)}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.status-dot.open{background:var(--open);box-shadow:0 0 7px rgba(0,210,106,.7);animation:pulse 1.5s infinite}
+.status-dot.closed{background:rgba(255,255,255,.2)}
+.status-dot.planned{background:rgba(91,140,255,.6)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.session-info{flex:1;min-width:0}
+.session-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700}
+.session-meta{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px}
+.tag{display:inline-flex;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.04em}
+.tag-pizza{background:rgba(255,149,0,.15);color:var(--pizza)}
+.tag-sp{background:rgba(255,255,255,.07);color:rgba(255,255,255,.4)}
+.tag-open{background:rgba(0,210,106,.15);color:var(--open)}
+.tag-planned{background:rgba(91,140,255,.12);color:#8090FF}
+.tag-closed{background:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
+.session-code{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.15em;color:var(--open);min-width:64px;text-align:center}
+.session-code.hidden{color:rgba(255,255,255,.15)}
+.session-stats{text-align:center;min-width:44px}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1}
+.stat-lbl{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.05em}
+.session-btns{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.btn-action{padding:7px 14px;border-radius:7px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:all .15s}
+.btn-close{background:rgba(255,59,48,.12);color:#FF8078;border:1px solid rgba(255,59,48,.25)}
+.btn-open{background:rgba(0,210,106,.1);color:var(--open);border:1px solid rgba(0,210,106,.25)}
+.btn-pizza{background:rgba(255,149,0,.1);color:var(--pizza);border:1px solid rgba(255,149,0,.25)}
+.sessions-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.btn-refresh{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:rgba(255,255,255,.5);font-size:12px;cursor:pointer}
+
+/* PARTICIPANTS */
+.search-input{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:200px}
+.search-input:focus{border-color:var(--blue)}
+.part-item{background:var(--glass);border:1px solid var(--border);border-radius:11px;padding:13px 16px;margin-bottom:7px;display:flex;align-items:center;gap:12px}
+.part-avatar{width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0}
+.part-info{flex:1;min-width:0}
+.part-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700}
+.part-meta{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.part-sessions{font-family:'Bebas Neue',sans-serif;font-size:20px;color:rgba(255,255,255,.6);min-width:32px;text-align:center}
+.btn-edit{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:rgba(255,255,255,.5);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-edit:hover{background:rgba(23,0,209,.2);border-color:var(--blue);color:#fff}
+.btn-pw{padding:6px 10px;border-radius:7px;border:1px solid rgba(255,149,0,.3);background:rgba(255,149,0,.08);color:var(--pizza);font-size:14px;cursor:pointer;transition:all .15s}
+.btn-pw.has-pw{border-color:rgba(0,210,106,.3);background:rgba(0,210,106,.08);color:var(--open)}
+
+/* STATS */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+@media(min-width:500px){.kpi-grid{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:16px}
+.kpi-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:5px}
+.kpi-val{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1}
+.tranche-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
+.tranche{background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.tranche-lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.tranche-val{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1}
+.tranche-pct{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.bar-name{font-size:12px;font-weight:500;min-width:120px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:7px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;transition:width .5s}
+.bar-val{font-family:'Bebas Neue',sans-serif;font-size:15px;min-width:24px;text-align:right}
+.zero-grid{display:flex;flex-wrap:wrap;gap:7px}
+.zero-tag{padding:4px 10px;background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.2);border-radius:18px;font-size:12px;color:rgba(255,130,120,.8)}
+.members-table{width:100%;border-collapse:collapse;font-size:12px}
+.members-table th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);border-bottom:1px solid var(--border)}
+.members-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.level{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.05em}
+.lv-ta{background:rgba(255,215,0,.15);color:#FFD700}
+.lv-a{background:rgba(0,210,106,.15);color:var(--open)}
+.lv-2{background:rgba(91,140,255,.15);color:#8090FF}
+.lv-1{background:rgba(255,149,0,.15);color:var(--pizza)}
+.lv-0{background:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
+
+/* MATCHS */
+.match-item{background:var(--glass);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px}
+.match-date{font-family:'Bebas Neue',sans-serif;font-size:18px;min-width:80px;color:rgba(255,255,255,.7)}
+.match-info{flex:1}
+.match-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700}
+.match-meta{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+.btn-del{padding:6px 12px;border-radius:7px;border:1px solid rgba(255,59,48,.25);background:rgba(255,59,48,.08);color:#FF8078;font-size:13px;cursor:pointer}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.overlay.show{display:flex}
+.modal{background:#06003A;border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:420px;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:16px}
+.modal-field{margin-bottom:13px}
+.modal-label{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:5px}
+.modal-input{width:100%;padding:12px 13px;border:1.5px solid var(--border);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;font-family:'Barlow',sans-serif;font-size:14px;outline:none}
+.modal-input:focus{border-color:var(--blue)}
+.modal-select{width:100%;padding:12px 13px;border:1.5px solid var(--border);border-radius:8px;background:#0a0050;color:#fff;font-family:'Barlow',sans-serif;font-size:14px;outline:none;appearance:none}
+.modal-actions{display:flex;gap:9px;margin-top:18px}
+.btn-save{flex:1;padding:12px;border-radius:9px;border:none;background:var(--blue);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.btn-cancel-m{padding:12px 18px;border-radius:9px;border:1px solid var(--border);background:transparent;color:rgba(255,255,255,.5);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;cursor:pointer}
+
+/* PIZZA ORDERS MODAL */
+.pizza-order-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pizza-order-bar{flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.pizza-order-fill{height:100%;border-radius:99px;background:var(--pizza)}
+.pizza-order-count{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--pizza);min-width:28px;text-align:right}
+
+/* MISC */
+.empty-state{text-align:center;padding:40px 20px;color:rgba(255,255,255,.3);font-size:13px}
+.empty-state div{font-size:28px;margin-bottom:8px}
+.sessions-count{font-size:12px;color:rgba(255,255,255,.4)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.5);z-index:300;opacity:0;transition:opacity .2s;white-space:nowrap}
+.toast.show{opacity:1}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:600px){.chart-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE — iPhone / Android
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1 · Prevent iOS zoom on input focus (min 16px) */
+input, select, textarea { font-size: 16px !important; }
+
+/* 2 · Touch targets ≥44px + remove tap highlight */
+button, .pin-btn, .tab-btn, .btn-action, .btn-create, .btn-edit,
+.btn-refresh, .btn-home, .btn-del, .btn-pw, .btn-cancel-m,
+.btn-save, .btn-close, .btn-open, .btn-pizza, .type-btn {
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 3 · Tabs : horizontal scroll */
+.tabs {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab-btn { white-space: nowrap; flex-shrink: 0; }
+
+/* 4 · Modals → bottom-sheet on mobile */
+@media (max-width: 640px) {
+  .overlay { align-items: flex-end !important; padding: 0 !important; }
+  .modal {
+    border-radius: 22px 22px 0 0 !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 20px 18px 28px !important;
+  }
+  .modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,.18);
+    border-radius: 2px;
+    margin: 0 auto 18px;
+  }
+}
+
+/* 5 · Create form : columns → vertical stack */
+@media (max-width: 640px) {
+  .form-row { flex-direction: column !important; }
+  .f-input, .f-input.narrow {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: none !important;
+  }
+  .type-toggle { width: 100%; }
+  .type-btn { flex: 1; text-align: center; }
+  .btn-create { width: 100%; }
+}
+
+/* 6 · Session items : wrap on small screens */
+@media (max-width: 640px) {
+  .session-item { flex-wrap: wrap; gap: 10px; }
+  .session-info { flex: 1 1 100%; }
+  .session-code { min-width: auto; font-size: 22px; }
+  .session-stats { min-width: auto; }
+  .session-btns {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    gap: 6px;
+  }
+  .btn-action { flex: 1; text-align: center; }
+}
+
+/* 7 · Stats table : horizontal scroll wrapper */
+.members-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+@media (max-width: 640px) {
+  .members-table { min-width: 380px; }
+  .bar-name { max-width: 88px; min-width: 88px; }
+  .tranche-grid { grid-template-columns: repeat(2,1fr); }
+  .main { padding: 14px 12px; }
+  .topbar { padding: 0 12px; }
+}
+
+/* 8 · Participant cards : wrap on mobile */
+@media (max-width: 480px) {
+  .part-item { flex-wrap: wrap; gap: 8px; }
+  .part-info { flex: 1 1 calc(100% - 50px); }
+}
+
+/* 9 · Match cards */
+@media (max-width: 480px) {
+  .match-item { flex-wrap: wrap; gap: 8px; }
+  .match-date { min-width: auto; }
+}
+
+/* 10 · Safe area — notch / home bar */
+@supports (padding: max(0px)) {
+  .topbar {
+    padding-top: max(0px, env(safe-area-inset-top));
+    height: calc(54px + max(0px, env(safe-area-inset-top)));
+  }
+  #screen-login { padding-top: max(24px, env(safe-area-inset-top)); }
+  body { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+}
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: max(12px, env(safe-area-inset-top));
+    height: calc(54px + max(12px, env(safe-area-inset-top)));
+  }
+}
+
+/* 11 · PIN login : tighter on very small screens */
+@media (max-width: 400px) {
+  .login-card { padding: 26px 18px; }
+  .pin-grid { max-width: 230px; gap: 6px; }
+  .pin-btn { padding: 14px; font-size: 20px; }
+  .pin-display { font-size: 36px; height: 48px; }
+  .login-title { font-size: 26px; }
+}
+
+</style>
+
+  <!-- ===== PWA + API (ajouté pour transformer la web-app en appli installable) ===== -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Session Tifo">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#07003D">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <script src="config.js"></script>
+  <script src="gas-shim.js"></script>
+</head>
+<body>
+
+<!-- ═══ LOGIN ════════════════════════════════════════════════ -->
+<div id="screen-login">
+  <div class="login-card">
+    🎭
+    <div class="login-title">Administration</div>
+    <div class="login-sub">Session Tifo 2026–2027</div>
+    <div class="pin-display" id="pin-display">----</div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pin('1')">1</button>
+      <button class="pin-btn" onclick="pin('2')">2</button>
+      <button class="pin-btn" onclick="pin('3')">3</button>
+      <button class="pin-btn" onclick="pin('4')">4</button>
+      <button class="pin-btn" onclick="pin('5')">5</button>
+      <button class="pin-btn" onclick="pin('6')">6</button>
+      <button class="pin-btn" onclick="pin('7')">7</button>
+      <button class="pin-btn" onclick="pin('8')">8</button>
+      <button class="pin-btn" onclick="pin('9')">9</button>
+      <button class="pin-btn" onclick="pinClear()">✕</button>
+      <button class="pin-btn" onclick="pin('0')">0</button>
+      <button class="pin-btn confirm" onclick="pinConfirm()">✓</button>
+    </div>
+    <div class="login-error" id="login-error">Code incorrect.</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ════════════════════════════════════════════════ -->
+<div id="screen-admin">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span style="font-size:20px">🎭</span>
+      <span class="topbar-title">Session Tifo</span>
+      <span class="badge-admin">Admin</span>
+      <span class="badge-version">V3</span>
+    </div>
+    <button class="btn-home" onclick="goToHome()">← Accueil</button>
+  </div>
+
+  <div class="main">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('sessions')">🗓 Sessions</button>
+      <button class="tab-btn" onclick="switchTab('participants')">👥 Participants</button>
+      <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+      <button class="tab-btn" onclick="switchTab('matchs')">⚽ PFC</button>
+    </div>
+
+    <!-- ── SESSIONS ── -->
+    <div class="tab active" id="tab-sessions">
+      <div class="card">
+        <div class="card-label">Nouvelle session</div>
+        <div class="form-row">
+          <input class="f-input" id="s-nom" placeholder="Nom (ex: Tifo 14/05)" />
+          <input class="f-input narrow" id="s-date" type="date" />
+          <input class="f-input narrow" id="s-heure" type="time" style="min-width:100px" />
+          <select class="f-input narrow" id="s-lieu">
+            <option value="">Lieu…</option>
+            <option>Paris Sud</option>
+            <option>Paris Intra Muros</option>
+            <option>Session en autonomie</option>
+          </select>
+          <input class="f-input" id="s-telegram" type="url" placeholder="Lien Telegram" />
+          <input class="f-input narrow" id="s-datefin" type="date" title="Date de fin (optionnel)" style="min-width:130px" />
+          <div class="type-toggle">
+            <button class="type-btn active" id="type-sans" onclick="setType('Sans Pizza')">Sans Pizza</button>
+            <button class="type-btn" id="type-pizza" onclick="setType('Pizza')">🍕 Pizza</button>
+          </div>
+          <button class="btn-create" id="btn-create" onclick="creerSession()">+ Créer</button>
+        </div>
+      </div>
+
+      <div class="sessions-header">
+        <div class="card-label" style="margin:0" id="sessions-count"></div>
+        <button class="btn-refresh" onclick="loadSessions()">↻ Actualiser</button>
+      </div>
+      <div id="sessions-list"><div class="empty-state"><div>⏳</div>Chargement…</div></div>
+    </div>
+
+    <!-- ── PARTICIPANTS ── -->
+    <div class="tab" id="tab-participants">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="card-label" style="margin:0" id="participants-count"></div>
+        <input class="search-input" id="part-search" placeholder="🔍 Rechercher…" oninput="filterParts()" />
+      </div>
+      <div id="participants-list"><div class="empty-state"><div>⏳</div>Chargement…</div></div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="tab" id="tab-stats">
+      <div id="stats-content"><div class="empty-state"><div>⏳</div>Chargement…</div></div>
+    </div>
+
+    <!-- ── MATCHS PFC ── -->
+    <div class="tab" id="tab-matchs">
+      <div class="card">
+        <div class="card-label">Ajouter un match</div>
+        <div class="form-row">
+          <input class="f-input" id="m-adv" placeholder="Adversaire" />
+          <input class="f-input narrow" id="m-date" type="date" />
+          <input class="f-input narrow" id="m-heure" type="time" style="min-width:100px" />
+          <input class="f-input" id="m-lieu" placeholder="Stade / lieu" />
+          <input class="f-input" id="m-comp" placeholder="Compétition" />
+          <select class="f-input narrow" id="m-type" style="min-width:130px">
+            <option value="Domicile">🏠 Domicile</option>
+            <option value="Extérieur">✈️ Extérieur</option>
+          </select>
+          <button class="btn-create" id="btn-match" onclick="addMatch()">+ Ajouter</button>
+        </div>
+      </div>
+      <div id="matchs-list"><div class="empty-state"><div>⏳</div>Chargement…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Edit participant -->
+<div class="overlay" id="modal-edit" onclick="closeModal('modal-edit',event)">
+  <div class="modal">
+    <div class="modal-title">Modifier le participant</div>
+    <input type="hidden" id="edit-id" />
+    <div class="modal-field"><label class="modal-label">Nom</label><input class="modal-input" id="edit-nom" type="text" /></div>
+    <div class="modal-field"><label class="modal-label">Prénom</label><input class="modal-input" id="edit-prenom" type="text" /></div>
+    <div class="modal-field"><label class="modal-label">Telegram</label><input class="modal-input" id="edit-telegram" type="text" /></div>
+    <div class="modal-field">
+      <label class="modal-label">Section</label>
+      <select class="modal-select" id="edit-section">
+        <option>Draft</option>
+        <option>Confirmé (non rattaché à une section)</option>
+        <option>La Vieille Firme</option>
+        <option>OMS</option>
+        <option>Jeunesse</option>
+        <option>Very Bad Troup</option>
+        <option>Mad Brigade</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel-m" onclick="closeModal('modal-edit')">Annuler</button>
+      <button class="btn-save" id="btn-save-edit" onclick="saveParticipant()">Enregistrer →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password modal -->
+<div class="overlay" id="modal-pw" onclick="closeModal('modal-pw',event)">
+  <div class="modal">
+    <div class="modal-title">🔑 Mot de passe</div>
+    <p id="pw-modal-name" style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:14px"></p>
+    <div class="modal-field"><label class="modal-label">Nouveau mot de passe</label><input class="modal-input" id="pw-input" type="text" placeholder="ex. Tifo2026" /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel-m" onclick="closeModal('modal-pw')">Annuler</button>
+      <button class="btn-save" id="btn-save-pw" onclick="savePassword()">Définir →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pizza orders modal -->
+<div class="overlay" id="modal-pizza" onclick="closeModal('modal-pizza',event)">
+  <div class="modal">
+    <div class="modal-title" id="pizza-modal-title">Commandes pizza</div>
+    <div id="pizza-modal-content"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel-m" style="width:100%" onclick="closeModal('modal-pizza')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Match edit modal -->
+<div class="overlay" id="modal-match-edit" onclick="closeModal('modal-match-edit',event)">
+  <div class="modal">
+    <div class="modal-title">✏️ Modifier le match</div>
+    <div class="modal-field"><label class="modal-label">Adversaire</label><input class="modal-input" id="me-adv" type="text" /></div>
+    <div class="modal-field"><label class="modal-label">Date</label><input class="modal-input" id="me-date" type="date" /></div>
+    <div class="modal-field"><label class="modal-label">Heure</label><input class="modal-input" id="me-heure" type="time" /></div>
+    <div class="modal-field"><label class="modal-label">Lieu</label><input class="modal-input" id="me-lieu" type="text" /></div>
+    <div class="modal-field"><label class="modal-label">Compétition</label><input class="modal-input" id="me-comp" type="text" /></div>
+    <div class="modal-field">
+      <label class="modal-label">Type</label>
+      <select class="modal-select" id="me-type">
+        <option value="Domicile">🏠 Domicile</option>
+        <option value="Extérieur">✈️ Extérieur</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel-m" onclick="closeModal('modal-match-edit')">Annuler</button>
+      <button class="btn-save" id="btn-save-match-edit" onclick="saveMatchEdit()">Enregistrer →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ── PIN Login ─────────────────────────────────────────────────
+var pinValue = "";
+
+function pin(digit) {
+  if (pinValue.length >= 4) return;
+  pinValue += digit;
+  updatePinDisplay();
+}
+
+function pinClear() {
+  pinValue = "";
+  updatePinDisplay();
+}
+
+function updatePinDisplay() {
+  var display = "";
+  for (var i = 0; i < 4; i++) {
+    display += (i < pinValue.length) ? "●" : "—";
+  }
+  document.getElementById("pin-display").textContent = display;
+}
+
+function pinConfirm() {
+  if (!pinValue) return;
+  var err = document.getElementById("login-error");
+  err.style.display = "none";
+  var btn = document.querySelector(".pin-btn.confirm");
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+  // The PIN is used as the admin token directly (validated server-side)
+  var attempt = pinValue;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (btn) { btn.disabled = false; btn.textContent = "✓"; }
+      if (r && r.sessions !== undefined) {
+        adminToken = attempt;
+        document.getElementById("screen-login").style.display = "none";
+        document.getElementById("screen-admin").style.display = "block";
+        renderSessions(r.sessions);
+      } else {
+        pinValue = "";
+        updatePinDisplay();
+        err.textContent = "Code incorrect.";
+        err.style.display = "block";
+      }
+    })
+    .withFailureHandler(function() {
+      if (btn) { btn.disabled = false; btn.textContent = "✓"; }
+      pinValue = "";
+      updatePinDisplay();
+      err.textContent = "Erreur de connexion.";
+      err.style.display = "block";
+    })
+    .getSessionsWithStats(attempt);
+}
+
+// ── State ─────────────────────────────────────────────────────
+var adminToken = "";
+var selectedType = "Sans Pizza";
+var allParts = [];
+var pwModalId = "";
+
+// ── Admin Login ───────────────────────────────────────────────
+function adminLogin() {
+  var nom = document.getElementById("adm-nom").value.trim().toUpperCase();
+  var prenom = document.getElementById("adm-prenom").value.trim().toUpperCase();
+  var pw = document.getElementById("adm-pw").value;
+  var btn = document.getElementById("adm-login-btn");
+  var err = document.getElementById("login-error");
+  err.style.display = "none";
+  if (!nom || !prenom || !pw) { err.textContent = "Remplissez tous les champs."; err.style.display = "block"; return; }
+  btn.disabled = true; btn.textContent = "Connexion…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false; btn.textContent = "Se connecter →";
+      if (r.ok && r.isAdmin) {
+        adminToken = r.token;
+        document.getElementById("screen-login").style.display = "none";
+        document.getElementById("screen-admin").style.display = "block";
+        loadSessions();
+      } else if (r.ok && !r.isAdmin) {
+        err.textContent = "Accès refusé — vous n'êtes pas administrateur.";
+        err.style.display = "block";
+      } else {
+        err.textContent = r.msg || "Identifiants incorrects.";
+        err.style.display = "block";
+      }
+    })
+    .withFailureHandler(function() {
+      btn.disabled = false; btn.textContent = "Se connecter →";
+      err.textContent = "Erreur de connexion."; err.style.display = "block";
+    })
+    .login(nom, prenom, pw);
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  document.querySelectorAll(".tab").forEach(function(t) { t.classList.remove("active"); });
+  var tabs = ["sessions","participants","stats","matchs"];
+  var idx = tabs.indexOf(tab);
+  if (idx > -1) document.querySelectorAll(".tab-btn")[idx].classList.add("active");
+  document.getElementById("tab-" + tab).classList.add("active");
+  if (tab === "participants") loadParticipants();
+  if (tab === "stats") loadStats();
+  if (tab === "matchs") loadMatchs();
+}
+
+// ── Sessions ─────────────────────────────────────────────────
+function setType(t) {
+  selectedType = t;
+  document.getElementById("type-sans").classList.toggle("active", t === "Sans Pizza");
+  document.getElementById("type-pizza").classList.toggle("active", t === "Pizza");
+}
+
+function creerSession() {
+  var nom = document.getElementById("s-nom").value.trim();
+  var date = document.getElementById("s-date").value;
+  var heure = document.getElementById("s-heure").value;
+  var lieu = document.getElementById("s-lieu").value;
+  var telegram = document.getElementById("s-telegram").value.trim();
+  var btn = document.getElementById("btn-create");
+  if (!nom) { showToast("Entrez un nom de session."); return; }
+  if (!date) { showToast("Entrez une date."); return; }
+  btn.disabled = true; btn.textContent = "Création…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false; btn.textContent = "+ Créer";
+      if (r.ok) {
+        document.getElementById("s-nom").value = "";
+        document.getElementById("s-date").value = "";
+        document.getElementById("s-heure").value = "";
+        document.getElementById("s-lieu").value = "";
+        document.getElementById("s-telegram").value = "";
+        showToast("✅ Session créée !");
+        loadSessions();
+      } else showToast(r.msg || "Erreur.");
+    })
+    .withFailureHandler(function() { btn.disabled = false; btn.textContent = "+ Créer"; showToast("Erreur."); })
+.createSession(adminToken, nom, selectedType, date, document.getElementById("s-datefin").value, heure, lieu, telegram);
+}
+
+function loadSessions() {
+  var list = document.getElementById("sessions-list");
+  list.innerHTML = '<div class="empty-state"><div>⏳</div>Chargement…</div>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r && r.sessions) renderSessions(r.sessions);
+      else list.innerHTML = '<div class="empty-state"><div>⚠️</div>' + (r && r.msg ? r.msg : 'Erreur inconnue') + '</div>';
+    })
+    .withFailureHandler(function(e) { list.innerHTML = '<div class="empty-state"><div>⚠️</div>' + (e && e.message ? e.message : 'Erreur serveur') + '</div>'; })
+    .getSessionsWithStats(adminToken);
+}
+
+function renderSessions(sessions) {
+  var list = document.getElementById("sessions-list");
+  var openCount = sessions.filter(function(s) { return s.statut === "OUVERTE"; }).length;
+  document.getElementById("sessions-count").textContent = openCount + " ouverte" + (openCount > 1 ? "s" : "") + " · " + sessions.length + " au total";
+  if (!sessions.length) { list.innerHTML = '<div class="empty-state"><div>📋</div>Aucune session</div>'; return; }
+  list.innerHTML = sessions.map(function(s) {
+    var isOpen = s.statut === "OUVERTE";
+    var isPlanned = s.statut === "PLANIFIÉE";
+    var isPizza = s.type === "Pizza";
+    var dotClass = isOpen ? "open" : isPlanned ? "planned" : "closed";
+    var tagStatut = isOpen ? '<span class="tag tag-open">● Ouverte</span>'
+      : isPlanned ? '<span class="tag tag-planned">Planifiée</span>'
+      : '<span class="tag tag-closed">Fermée</span>';
+    var codeHtml = isOpen
+      ? '<div class="session-code">' + s.code + '</div>'
+      : '<div class="session-code hidden">—</div>';
+    var btns = isOpen
+      ? '<button class="btn-action btn-close" onclick="fermerSession(\'' + s.id + '\',this)">Fermer</button>'
+      : isPlanned
+        ? '<button class="btn-action btn-open" onclick="ouvrirSession(\'' + s.id + '\',this)">Ouvrir</button>'
+        : '<button class="btn-action btn-open" onclick="ouvrirSession(\'' + s.id + '\',this)">Rouvrir</button>';
+    var pizzaBtn = isPizza ? '<button class="btn-action btn-pizza" onclick="voirCommandes(\'' + s.id + '\',this)">🍕 Commandes</button>' : '';
+    return '<div class="session-item ' + (isOpen ? "open" : "") + '">'
+      + '<div class="status-dot ' + dotClass + '"></div>'
+      + '<div class="session-info">'
+      + '<div class="session-name">' + esc(s.nom) + '</div>'
+      + '<div class="session-meta">'
+      + (s.date ? '<span>📅 ' + s.date + (s.dateFin && s.dateFin !== s.date ? ' → ' + s.dateFin : '') + '</span>' : '')
+      + (s.heure ? '<span>🕐 ' + s.heure + '</span>' : '')
+      + (s.lieu ? '<span>📍 ' + s.lieu + '</span>' : '')
+      + '</div>'
+      + '<div style="display:flex;gap:5px;margin-top:5px">'
+      + tagStatut
+      + '<span class="tag ' + (isPizza ? 'tag-pizza' : 'tag-sp') + '">' + (isPizza ? '🍕 Pizza' : 'Sans pizza') + '</span>'
+      + '</div>'
+      + '</div>'
+      + codeHtml
+      + '<div class="session-stats"><div class="stat-num">' + (s.presents || 0) + '</div><div class="stat-lbl">présents</div></div>'
+      + '<div class="session-btns">' + btns + pizzaBtn + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function fermerSession(id, btn) {
+  btn.disabled = true; btn.textContent = "…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      showToast("✅ Session fermée." + (r.noShowCount ? " " + r.noShowCount + " no show(s)." : ""));
+      loadSessions();
+    })
+    .closeSession(adminToken, id);
+}
+function ouvrirSession(id, btn) {
+  btn.disabled = true; btn.textContent = "…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.ok) showToast("✅ Session ouverte — Code : " + r.code, 4000);
+      loadSessions();
+    })
+    .openSession(adminToken, id);
+}
+function voirCommandes(sessionId, btn) {
+  document.getElementById("pizza-modal-title").textContent = "Commandes pizza";
+  document.getElementById("pizza-modal-content").innerHTML = '<div class="empty-state" style="padding:20px 0"><div>⏳</div>Chargement…</div>';
+  document.getElementById("modal-pizza").classList.add("show");
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.orders || !r.orders.length) {
+        document.getElementById("pizza-modal-content").innerHTML = '<div class="empty-state" style="padding:20px 0"><div>🍕</div>Aucune commande</div>';
+        return;
+      }
+      var EMOJIS = {"Bellissima":"🍕","Regina":"🍕","Paysanne":"🍕","Margarita":"🍕","4 Fromages":"🍕","Je ne mange pas":"🚫","Pinte":"🍺"};
+      var max = r.orders[0].count;
+      var html = '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:12px">' + r.total + ' participants · ' + r.orders.reduce(function(s,o){return s+o.count;},0) + ' commandes</div>';
+      r.orders.forEach(function(o) {
+        var pct = Math.round(o.count / max * 100);
+        var e = EMOJIS[o.item] || "🍽";
+        html += '<div class="pizza-order-row">'
+          + '<span style="font-size:18px;flex-shrink:0">' + e + '</span>'
+          + '<div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:14px;font-weight:600">' + esc(o.item) + '</span><span class="pizza-order-count">' + o.count + '</span></div>'
+          + '<div class="pizza-order-bar"><div class="pizza-order-fill" style="width:' + pct + '%"></div></div></div>'
+          + '</div>';
+      });
+      document.getElementById("pizza-modal-content").innerHTML = html;
+    })
+    .getPizzaOrders(adminToken, sessionId);
+}
+
+// ── Participants ──────────────────────────────────────────────
+function loadParticipants() {
+  document.getElementById("participants-list").innerHTML = '<div class="empty-state"><div>⏳</div>Chargement…</div>';
+  google.script.run
+    .withSuccessHandler(function(data) { allParts = data || []; renderParts(allParts); })
+    .withFailureHandler(function() { document.getElementById("participants-list").innerHTML = '<div class="empty-state"><div>⚠️</div>Erreur</div>'; })
+    .getParticipants();
+}
+
+function renderParts(data) {
+  var list = document.getElementById("participants-list");
+  document.getElementById("participants-count").textContent = data.length + " participant" + (data.length > 1 ? "s" : "");
+  if (!data.length) { list.innerHTML = '<div class="empty-state"><div>👥</div>Aucun participant</div>'; return; }
+  var html = "";
+  data.forEach(function(p) {
+    var hasPw = !!p.hasPassword;
+    html += '<div class="part-item">'
+      + '<div class="part-avatar">' + esc((p.nom || "?")[0]) + '</div>'
+      + '<div class="part-info">'
+      + '<div class="part-name">' + esc(p.nom) + ' ' + esc(p.prenom) + '</div>'
+      + '<div class="part-meta">' + esc(p.telegram || "—") + ' · ' + esc(p.section || "—") + '</div>'
+      + '</div>'
+      + '<div class="part-sessions">' + (p.sessions || 0) + '</div>'
+      + '<div style="display:flex;gap:6px;align-items:center">'
+      + '<button class="btn-edit" onclick="openEditModal(\'' + p.id + '\')">✏ Modifier</button>'
+      + '<button class="' + (hasPw ? "btn-pw has-pw" : "btn-pw") + '" onclick="openPwModal(\'' + p.id + '\',\'' + esc(p.nom) + ' ' + esc(p.prenom) + '\')" title="' + (hasPw ? "Réinitialiser" : "Définir") + ' le mot de passe">'
+      + (hasPw ? "🔑" : "⚠️") + '</button>'
+      + '</div>'
+      + '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function filterParts() {
+  var q = document.getElementById("part-search").value.toLowerCase().trim();
+  if (!q) { renderParts(allParts); return; }
+  renderParts(allParts.filter(function(p) {
+    return (p.nom + " " + p.prenom + " " + p.telegram + " " + p.section).toLowerCase().includes(q);
+  }));
+}
+
+function openEditModal(id) {
+  var p = allParts.find(function(x) { return x.id === id; });
+  if (!p) return;
+  document.getElementById("edit-id").value = p.id;
+  document.getElementById("edit-nom").value = p.nom || "";
+  document.getElementById("edit-prenom").value = p.prenom || "";
+  document.getElementById("edit-telegram").value = p.telegram || "";
+  document.getElementById("edit-section").value = p.section || "Draft";
+  document.getElementById("modal-edit").classList.add("show");
+}
+
+function saveParticipant() {
+  var id = document.getElementById("edit-id").value;
+  var nom = document.getElementById("edit-nom").value.trim();
+  var prenom = document.getElementById("edit-prenom").value.trim();
+  var telegram = document.getElementById("edit-telegram").value.trim();
+  var section = document.getElementById("edit-section").value;
+  var btn = document.getElementById("btn-save-edit");
+  if (!nom || !prenom) { showToast("Nom et prénom requis."); return; }
+  btn.disabled = true; btn.textContent = "Enregistrement…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false; btn.textContent = "Enregistrer →";
+      if (r.ok) { closeModal("modal-edit"); showToast("✅ Participant mis à jour."); loadParticipants(); }
+      else showToast("Erreur.");
+    })
+    .updateParticipant(id, nom, prenom, telegram, section);
+}
+
+function openPwModal(id, name) {
+  pwModalId = id;
+  document.getElementById("pw-modal-name").textContent = name;
+  document.getElementById("pw-input").value = "";
+  document.getElementById("modal-pw").classList.add("show");
+}
+
+function savePassword() {
+  var pw = document.getElementById("pw-input").value.trim();
+  var btn = document.getElementById("btn-save-pw");
+  if (!pw || pw.length < 4) { showToast("Minimum 4 caractères."); return; }
+  btn.disabled = true; btn.textContent = "Enregistrement…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false; btn.textContent = "Définir →";
+      if (r.ok) { closeModal("modal-pw"); showToast("✅ Mot de passe défini !"); loadParticipants(); }
+      else showToast("Erreur.");
+    })
+    .adminSetPassword(adminToken, pwModalId, pw);
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+function loadStats() {
+  document.getElementById("stats-content").innerHTML = '<div class="empty-state"><div>⏳</div>Calcul…</div>';
+  google.script.run
+    .withSuccessHandler(renderStats)
+    .withFailureHandler(function() { document.getElementById("stats-content").innerHTML = '<div class="empty-state"><div>⚠️</div>Erreur</div>'; })
+    .getStats();
+}
+
+function renderStats(s) {
+  var total = s.total || 0;
+  var pct = function(n) { return total ? Math.round(n/total*100) : 0; };
+  var maxBar = s.top10 && s.top10.length ? s.top10[0].sessions : 1;
+  var maxSec = s.sections && s.sections.length ? s.sections[0][1] : 1;
+  var COLORS = ["#1700D1","#2E18E0","#4530EF","#5B48FF","#7060FF","#8575FF","#9A8AFF","#AFA0FF","#C4B5FF","#D9CAFF"];
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi"><div class="kpi-lbl">Total inscrits</div><div class="kpi-val">' + total + '</div></div>'
+    + '<div class="kpi"><div class="kpi-lbl">Membres actifs</div><div class="kpi-val" style="color:#8090FF">' + (s.actifs||0) + '</div></div>'
+    + '<div class="kpi"><div class="kpi-lbl">Sessions uniques</div><div class="kpi-val" style="color:var(--open)">' + (s.totalUniqueSessions||0) + '</div></div>'
+    + '<div class="kpi"><div class="kpi-lbl">Moy. / actif</div><div class="kpi-val" style="color:var(--pizza)">' + (s.moyActif||0) + '</div></div>'
+    + '<div class="kpi"><div class="kpi-lbl">No Shows</div><div class="kpi-val" style="color:#FF8078">' + (s.totalNoShow||0) + '</div></div>'
+    + '</div>'
+    + '<div class="tranche-grid">'
+    + '<div class="tranche"><div class="tranche-lbl" style="color:#FFD700">Très actif ≥5</div><div class="tranche-val" style="color:#FFD700">' + (s.tranche.tresActif||0) + '</div><div class="tranche-pct">' + pct(s.tranche.tresActif||0) + '%</div></div>'
+    + '<div class="tranche"><div class="tranche-lbl" style="color:var(--open)">Actif 3–4</div><div class="tranche-val" style="color:var(--open)">' + (s.tranche.actif||0) + '</div><div class="tranche-pct">' + pct(s.tranche.actif||0) + '%</div></div>'
+    + '<div class="tranche"><div class="tranche-lbl" style="color:#8090FF">2 sessions</div><div class="tranche-val" style="color:#8090FF">' + (s.tranche.two||0) + '</div><div class="tranche-pct">' + pct(s.tranche.two||0) + '%</div></div>'
+    + '<div class="tranche"><div class="tranche-lbl" style="color:var(--pizza)">1 session</div><div class="tranche-val" style="color:var(--pizza)">' + (s.tranche.one||0) + '</div><div class="tranche-pct">' + pct(s.tranche.one||0) + '%</div></div>'
+    + '<div class="tranche" style="grid-column:span 2"><div class="tranche-lbl" style="color:rgba(255,255,255,.3)">0 session</div><div class="tranche-val" style="color:rgba(255,255,255,.3)">' + (s.tranche.zero||0) + '</div><div class="tranche-pct">' + pct(s.tranche.zero||0) + '%</div></div>'
+    + '</div>'
+    + '<div class="chart-grid">'
+    + '<div class="card"><div class="card-label">Top 10 participations</div>'
+    + (s.top10||[]).map(function(p,i) { return '<div class="bar-row"><div class="bar-name">' + esc(p.nom) + '</div><div class="bar-track"><div class="bar-fill" style="width:' + Math.round(p.sessions/maxBar*100) + '%;background:' + (COLORS[i]||"#5B8CFF") + '"></div></div><div class="bar-val">' + p.sessions + '</div></div>'; }).join('')
+    + '</div>'
+    + '<div class="card"><div class="card-label">Sessions par section</div>'
+    + (s.sections||[]).map(function(sec) { return '<div class="bar-row"><div class="bar-name">' + esc(sec[0]) + '</div><div class="bar-track"><div class="bar-fill" style="width:' + Math.round(sec[1]/maxSec*100) + '%;background:var(--blue)"></div></div><div class="bar-val">' + sec[1] + '</div></div>'; }).join('')
+    + '</div></div>';
+
+  if (s.zeroSession && s.zeroSession.length) {
+    html += '<div class="card"><div class="card-label">Inscrits à 0 session (' + s.zeroSession.length + ')</div><div class="zero-grid">'
+      + s.zeroSession.map(function(n) { return '<span class="zero-tag">' + esc(n) + '</span>'; }).join('')
+      + '</div></div>';
+  }
+
+  html += '<div class="card"><div class="card-label">Classement complet</div><div class="members-table-wrap"><table class="members-table"><thead><tr><th>#</th><th>Nom</th><th>Section</th><th>Sessions</th><th>Niveau</th></tr></thead><tbody>'
+    + (s.allMembers||[]).map(function(m,i) {
+      var lv, cls;
+      if (m.sessions>=5){lv="Très actif";cls="lv-ta";}
+      else if (m.sessions>=3){lv="Actif";cls="lv-a";}
+      else if (m.sessions===2){lv="2 sessions";cls="lv-2";}
+      else if (m.sessions===1){lv="1 session";cls="lv-1";}
+      else{lv="0 session";cls="lv-0";}
+      return '<tr><td style="color:rgba(255,255,255,.3)">' + (i+1) + '</td><td style="font-weight:600">' + esc(m.nom) + '</td><td style="color:rgba(255,255,255,.45)">' + esc(m.section) + '</td><td><strong>' + m.sessions + '</strong></td><td><span class="level ' + cls + '">' + lv + '</span></td></tr>';
+    }).join('')
+    + '</tbody></table></div></div>';
+
+  document.getElementById("stats-content").innerHTML = html;
+}
+
+// ── Matchs PFC ────────────────────────────────────────────────
+function loadMatchs() {
+  document.getElementById("matchs-list").innerHTML = '<div class="empty-state"><div>⏳</div>Chargement…</div>';
+  google.script.run
+    .withSuccessHandler(function(data) { renderMatchs(data || []); })
+    .withFailureHandler(function() { document.getElementById("matchs-list").innerHTML = '<div class="empty-state"><div>⚠️</div>Erreur</div>'; })
+    .getMatches();
+}
+
+function renderMatchs(data) {
+  var list = document.getElementById("matchs-list");
+  if (!data.length) { list.innerHTML = '<div class="empty-state"><div>⚽</div>Aucun match saisi</div>'; return; }
+  list.innerHTML = data.map(function(m) {
+    return '<div class="match-item">'
+      + '<div class="match-date">⚽ ' + esc(m.date) + '</div>'
+      + '<div class="match-info"><div class="match-name">' + esc(m.adversaire) + '</div><div class="match-meta">' + esc(m.competition||'') + (m.lieu?' — '+esc(m.lieu):'') + '</div></div>'
+      + '<button class="btn-del" onclick="deleteMatch(\'' + m.id + '\',this)">✕</button>'
+      + '</div>';
+  }).join('');
+}
+
+function addMatch() {
+  var adv = document.getElementById("m-adv").value.trim();
+  var date = document.getElementById("m-date").value;
+  var lieu = document.getElementById("m-lieu").value.trim();
+  var comp = document.getElementById("m-comp").value.trim();
+  var btn = document.getElementById("btn-match");
+  if (!adv || !date) { showToast("Adversaire et date requis."); return; }
+  btn.disabled = true; btn.textContent = "…";
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false; btn.textContent = "+ Ajouter";
+      if (r.ok) {
+        document.getElementById("m-adv").value = "";
+        document.getElementById("m-date").value = "";
+        document.getElementById("m-lieu").value = "";
+        document.getElementById("m-comp").value = "";
+        showToast("✅ Match ajouté !"); loadMatchs();
+      }
+    })
+.addMatch(adminToken, date, adv, lieu, comp, document.getElementById("m-heure").value, document.getElementById("m-type").value);
+}
+
+function deleteMatch(id, btn) {
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(function() { showToast("Match supprimé."); loadMatchs(); })
+    .deleteMatch(adminToken, id);
+}
+
+// ── Modal helpers ─────────────────────────────────────────────
+function closeModal(id, e) {
+  if (!e || e.target === document.getElementById(id))
+    document.getElementById(id).classList.remove("show");
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
+function showToast(msg, duration) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(function() { t.classList.remove("show"); }, duration || 2500);
+}
+
+function goToHome() {
+  google.script.run.withSuccessHandler(function(url) {
+    window.open(url, "_blank");
+  }).getAppUrl();
+}
+</script>
+
+<script>
+// ── Block iOS/Android swipe-back navigation ─────────────────────────
+(function() {
+  // Push a state so there is always a "current" entry
+  history.pushState(null, '', location.href);
+  
+  // Any time the user navigates "back", push forward again
+  window.addEventListener('popstate', function() {
+    history.pushState(null, '', location.href);
+  });
+
+  // Block left-edge touch swipe (iOS Safari swipe-back gesture)
+  var touchStartX = 0;
+  document.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    // If finger started within 20px of left edge → block
+    if (touchStartX < 20) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+})();
+</script>
+
+
+<script>
+// PWA: retour vers l'app principale
+window.goToHome = function(){ location.href = 'index.html'; };
+</script>
+</body>
+</html>
