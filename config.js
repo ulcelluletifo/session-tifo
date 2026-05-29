@@ -6,7 +6,7 @@
    Déployer ▸ Nouveau déploiement ▸ Application Web ▸ (copier l'URL).
    ===================================================================== */
 
-window.TIFO_API_URL = "https://script.google.com/macros/s/AKfycbz9O4PG0_32QRmxMXAW4razNZoySXhuU6pQ_fD26xiuHacQmh5vEaOR3XO-HKC2FAVz/exec";
+window.TIFO_API_URL = "https://script.google.com/macros/s/AKfycbynSf-Bdw-WQtUOYU-DfEFNfXHXM8Eq8vWqOPnDydKt2PjIMk3FPB8EodvAeoM6ENlj/exec";
 
 
 
