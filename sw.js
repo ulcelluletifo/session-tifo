@@ -19,14 +19,12 @@ const SHELL = [
   "./icons/apple-touch-icon.png",
   "./icons/favicon-32.png"
 ];
-
 self.addEventListener("install", (e) => {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then((c) => Promise.allSettled(SHELL.map((u) => c.add(u))))
   );
 });
-
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -34,14 +32,11 @@ self.addEventListener("activate", (e) => {
     ).then(() => self.clients.claim())
   );
 });
-
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
-
   // Ne jamais intercepter : requêtes non-GET (API POST) ou autres origines
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
-
   // Stale-while-revalidate
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
