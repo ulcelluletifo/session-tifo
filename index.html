@@ -373,6 +373,8 @@ select option { background: #0a0050; }
 #atab-participants,
 #atab-stats,
 #atab-matchs {
+  height: calc(100vh - 120px);
+  max-height: calc(100vh - 120px);
   padding-bottom: calc(var(--nav-h) + var(--safe-bot) + 16px);
 }
 
@@ -1904,7 +1906,8 @@ function admEditSession(btn) {
       document.getElementById("ses-edit-max").value = s.maxParticipants||"";
     }
   }
-  document.getElementById("modal-edit-session").classList.add("show");
+  document.getElementById("ses-edit-max").value = s ? (s.maxParticipants||"") : "";
+  document.getElementById("modal-sess-edit").classList.add("show");
 }
 function closeEditSession(e) {
   if(!e||e.target===document.getElementById("modal-edit-session"))
