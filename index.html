@@ -882,6 +882,14 @@ button {
   touch-action: manipulation;
 }
 .btn-inscrits:active { transform: scale(.98); }
+
+/* ── v6 : scroll déroulant fluide ── */
+.tab-content { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+#tab-upcoming, #tab-past, #tab-calendar,
+#atab-sessions, #atab-participants, #atab-stats, #atab-matchs {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
 </style>
 
   <!-- ===== PWA + API (ajouté pour transformer la web-app en appli installable) ===== -->
@@ -1549,7 +1557,7 @@ function voirInscrits(sessionId, sessionNom){
         h+='<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">'
           +'<div style="width:24px;height:24px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+(i+1)+'</div>'
           +'<div style="flex:1;min-width:0">'
-          +'<div style="font-size:14px;font-weight:600">'+esc(p.prenom)+" "+esc(p.nom)+'</div>'
+          +'<div style="font-size:14px;font-weight:600">'+(p.telegram?esc(p.telegram):(esc(p.prenom)+" "+esc(p.nom)))+'</div>'
           +'<div style="font-size:11px;color:rgba(255,255,255,.4)">'+esc(p.section||"")+'</div>'
           +pizza
           +'</div>'
@@ -2091,8 +2099,10 @@ function loadAdminSessions() {
           +'</div>'
           +'<div class="session-meta">'+(s.date?"📅 "+s.date+" ":"")+(s.heure?"🕐 "+s.heure+" ":"")+(s.lieu?"📍 "+s.lieu:"")+'</div>'
           +'</div>'
-          +'<div style="display:flex;gap:6px">'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+        +'<button onclick="admVoirInscrits(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);font-size:12px;cursor:pointer" title="Liste inscrits">👥 '+s.presents+'+'+s.inscrits+'</button>'
         +'<button onclick="admEditSession(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:12px;cursor:pointer" title="Modifier">✏️</button>'
+        +(s.type==="Pizza"?'<button onclick="admVoirCommandes(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,149,0,.3);background:rgba(255,149,0,.08);color:#FF9500;font-size:12px;cursor:pointer" title="Commandes pizza">🍕</button>':"")
         +'<button onclick="admAction(this)" style="padding:7px 14px;border-radius:7px;border:1px solid '+(isOpen?"rgba(255,59,48,.3)":"rgba(0,210,106,.3)")+';background:'+(isOpen?"rgba(255,59,48,.12)":"rgba(0,210,106,.1)")+';color:'+(isOpen?"#FF8078":"#00D26A")+';font-size:13px;font-weight:700;cursor:pointer">'+(isOpen?"Fermer":"Ouvrir")+'</button>'
         +'</div>'
           +'</div></div>';
@@ -2434,7 +2444,7 @@ function loadAdminStats() {
       h+='<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px">Top 10</div>';
       (s.top10||[]).forEach(function(p,i){
         h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-          +'<div style="font-size:12px;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.nom)+'</div>'
+          +'<div style="font-size:12px;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+esc(p.nom)+'">'+(p.telegram?esc(p.telegram):esc(p.nom))+'</div>'
           +'<div style="flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden"><div style="height:100%;border-radius:99px;width:'+Math.round(p.sessions/maxBar*100)+'%;background:'+(COLORS[i]||"#5B8CFF")+'"></div></div>'
           +'<div style="font-size:14px;font-weight:700;min-width:20px;text-align:right">'+p.sessions+'</div></div>';
       });
