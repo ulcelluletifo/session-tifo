@@ -1,9 +1,5 @@
 /* =====================================================================
-   sw.js — Service Worker Session Tifo
-   - Précache la coquille de l'app (ouverture hors-ligne)
-   - Stale-while-revalidate pour les fichiers same-origin (GET)
-   - Laisse passer les appels API (POST / cross-origin) au réseau
-   Incrémente CACHE pour forcer la mise à jour après modif.
+   sw.js — Service Worker Session Tifo  v6
    ===================================================================== */
 const CACHE = "tifo-v6";
 const SHELL = [
@@ -35,9 +31,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  // Ne jamais intercepter : requêtes non-GET (API POST) ou autres origines
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
-  // Stale-while-revalidate
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(req);
