@@ -1435,7 +1435,63 @@ function selSection(el,val){
 
 // ── Navigation ───────────────────────────────────────────────
 function go(id){
-  initLogos();
+  
+// ── v6 : admVoirInscrits ────────────────────────────────────────────
+function admVoirInscrits(btn) {
+  var card=btn.closest('[data-sid]');
+  var sid=card.getAttribute('data-sid');
+  var s=_sessCache.find(function(x){return x.id===sid;});
+  var isPizza=s&&s.type==='Pizza';
+  document.getElementById('inscrits-title').textContent='👥 '+(s?esc(s.nom):'Inscrits');
+  document.getElementById('inscrits-count').textContent='';
+  document.getElementById('inscrits-content').innerHTML='<div class="empty-state" style="padding:24px 0"><div>⏳</div>Chargement…</div>';
+  document.getElementById('modal-inscrits').classList.add('show');
+  google.script.run
+    .withSuccessHandler(function(r){
+      if(!r||!r.ok){
+        document.getElementById('inscrits-content').innerHTML='<div class="empty-state"><div>⚠️</div>'+(r&&r.msg?r.msg:'Erreur')+'</div>';
+        return;
+      }
+      var inscriptions=(r.inscriptions||[]).filter(function(p){return p.statut!=='ANNULÉ';});
+      var presents=inscriptions.filter(function(p){return p.statut==='PRÉSENT';}).length;
+      var inscrits=inscriptions.filter(function(p){return p.statut==='INSCRIT';}).length;
+      var max=r.maxParticipants||0;
+      var total=inscriptions.length;
+      document.getElementById('inscrits-count').textContent=
+        total+(max>0?' / '+max:'')+' inscrit'+(total>1?'s':'')
+        +(presents?' · '+presents+' présent'+(presents>1?'s':''):'');
+      if(!total){
+        document.getElementById('inscrits-content').innerHTML='<div class="empty-state" style="padding:24px 0"><div>👥</div>Aucun inscrit</div>';
+        return;
+      }
+      var STATUS_COLOR={'PRÉSENT':'#00D26A','INSCRIT':'#8090FF','NO_SHOW':'#FF8078'};
+      var STATUS_ICON={'PRÉSENT':'✅','INSCRIT':'✓','NO_SHOW':'✗'};
+      var h='';
+      inscriptions.forEach(function(p,i){
+        var col=STATUS_COLOR[p.statut]||'#fff';
+        var ic=STATUS_ICON[p.statut]||'·';
+        var displayName=p.telegram?esc(p.telegram):(esc(p.prenom)+' '+esc(p.nom));
+        var pizza=isPizza&&p.pizza&&p.pizza!=='Je ne mange pas'
+          ?'<span style="font-size:10px;color:#FF9500;display:block">🍕 '+esc(p.pizza)+'</span>':'';
+        h+='<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">'
+          +'<div style="width:24px;height:24px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+(i+1)+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:14px;font-weight:600">'+displayName+'</div>'
+          +'<div style="font-size:11px;color:rgba(255,255,255,.4)">'+esc(p.section||'')+'</div>'
+          +pizza
+          +'</div>'
+          +'<span style="font-size:11px;font-weight:700;color:'+col+'">'+ic+'</span>'
+          +'</div>';
+      });
+      document.getElementById('inscrits-content').innerHTML=h;
+    })
+    .withFailureHandler(function(e){
+      document.getElementById('inscrits-content').innerHTML='<div class="empty-state"><div>⚠️</div>'+(e&&e.message?e.message:'Erreur')+'</div>';
+    })
+    .getSessionDetails(token, sid);
+}
+
+initLogos();
   document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});
   document.getElementById(id).classList.add("active");
   window.scrollTo(0,0);
@@ -2116,141 +2172,7 @@ function loadAdminSessions() {
     .getSessionsWithStats(token);
 }
 var _sessEditCache = {};
-function admEditSession(btn) {
-  var card = btn.closest("[data-sid]");
-  var sid = card.getAttribute("data-sid");
-  // Find session data from the rendered card
-  var nameEl = card.querySelector(".session-name");
-  var metaEl = card.querySelector(".session-meta");
-  var codeSpan = card.querySelector("span[style*='20px']");
-  
-  _sessEditCache[sid] = { id: sid };
-  document.getElementById("ses-edit-id").value = sid;
-  document.getElementById("ses-edit-nom").value = nameEl ? nameEl.textContent.trim() : "";
-  document.getElementById("ses-edit-date").value = "";
-  document.getElementById("ses-edit-heure").value = "";
-  document.getElementById("ses-edit-lieu").value = "";
-  document.getElementById("ses-edit-telegram").value = "";
-  document.getElementById("ses-edit-type").value = "Sans Pizza";
-  
-  // Pre-fill from getSessionsWithStats cache if available
-  if(window._sessCache) {
-    var s = window._sessCache.find(function(x){return x.id===sid;});
-    if(s) {
-      document.getElementById("ses-edit-nom").value = s.nom||"";
-      if(s.date) document.getElementById("ses-edit-date").value = s.date.split('/').reverse().join('-');
-      document.getElementById("ses-edit-heure").value = s.heure||"";
-      document.getElementById("ses-edit-lieu").value = s.lieu||"";
-      document.getElementById("ses-edit-telegram").value = s.telegramLink||"";
-      document.getElementById("ses-edit-type").value = s.type||"Sans Pizza";
-    }
-  }
-  document.getElementById("modal-edit-session").classList.add("show");
-}
-function closeEditSession(e) {
-  if(!e||e.target===document.getElementById("modal-edit-session"))
-    document.getElementById("modal-edit-session").classList.remove("show");
-}
-function saveSessionEdit() {
-  var sid = document.getElementById("ses-edit-id").value;
-  var nom = document.getElementById("ses-edit-nom").value.trim();
-  var date = document.getElementById("ses-edit-date").value;
-  var heure = document.getElementById("ses-edit-heure").value;
-  var lieu = document.getElementById("ses-edit-lieu").value;
-  var telegram = document.getElementById("ses-edit-telegram").value.trim();
-  var type = document.getElementById("ses-edit-type").value;
-  var btn = document.getElementById("ses-edit-btn");
-  if(!nom){alert("Nom requis.");return;}
-  btn.disabled=true; btn.textContent="Enregistrement…";
-  google.script.run
-    .withSuccessHandler(function(r){
-      btn.disabled=false; btn.textContent="Enregistrer →";
-      if(r&&r.ok){
-        document.getElementById("modal-edit-session").classList.remove("show");
-        loadAdminSessions();
-      } else alert(r&&r.msg?r.msg:"Erreur.");
-    })
-    .withFailureHandler(function(e){btn.disabled=false;btn.textContent="Enregistrer →";alert(e&&e.message?e.message:"Erreur serveur");})
-    .updateSession(token, sid, nom, type, date, heure, lieu, telegram);
-}
 
-// Session edit cache
-var _sessCache = [];
-
-function openSessEdit(btn) {
-  var card = btn.closest("[data-sid]");
-  var sid = card.getAttribute("data-sid");
-  var s = _sessCache.find(function(x){ return x.id === sid; });
-  if (!s) return;
-  document.getElementById("ses-edit-id").value = sid;
-  document.getElementById("ses-edit-nom").value = s.nom || "";
-  // Convert dd/MM/yyyy to yyyy-MM-dd for date input
-  var d = s.date ? s.date.split('/').reverse().join('-') : "";
-  document.getElementById("ses-edit-date").value = d;
-  document.getElementById("ses-edit-heure").value = s.heure || "";
-  document.getElementById("ses-edit-lieu").value = s.lieu || "";
-  document.getElementById("ses-edit-telegram").value = s.telegramLink || "";
-  document.getElementById("ses-edit-type").value = s.type || "Sans Pizza";
-  document.getElementById("modal-sess-edit").classList.add("show");
-}
-function closeSessEdit(e) {
-  if (!e || e.target === document.getElementById("modal-sess-edit"))
-    document.getElementById("modal-sess-edit").classList.remove("show");
-}
-function saveSessEdit() {
-  var id = document.getElementById("ses-edit-id").value;
-  var btn = document.getElementById("ses-edit-save");
-  btn.disabled = true; btn.textContent = "Enregistrement…";
-  google.script.run
-    .withSuccessHandler(function(r) {
-      btn.disabled = false; btn.textContent = "Enregistrer →";
-      if (r && r.ok) {
-        document.getElementById("modal-sess-edit").classList.remove("show");
-        loadAdminSessions();
-      } else alert(r && r.msg ? r.msg : "Erreur");
-    })
-    .withFailureHandler(function() { btn.disabled = false; btn.textContent = "Enregistrer →"; })
-    .updateSession(token, id,
-      document.getElementById("ses-edit-nom").value.trim(),
-      document.getElementById("ses-edit-type").value,
-      document.getElementById("ses-edit-date").value,
-      document.getElementById("ses-edit-heure").value,
-      document.getElementById("ses-edit-lieu").value,
-      document.getElementById("ses-edit-telegram").value.trim()
-    );
-}
-
-function admVoirCommandes(btn) {
-  var card=btn.closest("[data-sid]");
-  var sid=card.getAttribute("data-sid");
-  var s=_sessCache.find(function(x){return x.id===sid;});
-  var title=s?s.nom:"Commandes pizza";
-  document.getElementById("pizza-orders-title").textContent="🍕 "+title;
-  document.getElementById("pizza-orders-content").innerHTML='<div class="empty-state" style="padding:20px 0"><div>⏳</div>Chargement…</div>';
-  document.getElementById("modal-pizza-orders").classList.add("show");
-  google.script.run
-    .withSuccessHandler(function(r){
-      if(!r||!r.orders||!r.orders.length){
-        document.getElementById("pizza-orders-content").innerHTML='<div class="empty-state" style="padding:20px 0"><div>🍕</div>Aucune commande</div>';
-        return;
-      }
-      var EMOJIS={"Bellissima":"🍕","Regina":"🍕","Paysanne":"🍕","Margarita":"🍕","4 Fromages":"🍕","Je ne mange pas":"🚫","Pinte":"🍺"};
-      var max=r.orders[0].count;
-      var h='<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:12px">'+r.total+' participants · '+r.orders.reduce(function(s,o){return s+o.count;},0)+' commandes</div>';
-      r.orders.forEach(function(o){
-        var pct=Math.round(o.count/max*100);
-        var e=EMOJIS[o.item]||"🍽";
-        h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
-          +'<span style="font-size:18px;flex-shrink:0">'+e+'</span>'
-          +'<div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:14px;font-weight:600">'+esc(o.item)+'</span><span style="font-size:20px;font-weight:700;color:#FF9500">'+o.count+'</span></div>'
-          +'<div style="height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden"><div style="height:100%;border-radius:99px;background:#FF9500;width:'+pct+'%"></div></div></div>'
-          +'</div>';
-      });
-      document.getElementById("pizza-orders-content").innerHTML=h;
-    })
-    .withFailureHandler(function(){document.getElementById("pizza-orders-content").innerHTML='<div class="empty-state"><div>⚠️</div>Erreur</div>';})
-    .getPizzaOrders(token, sid);
-}
 
 function admAction(btn) {
   var card=btn.closest("[data-sid]");
