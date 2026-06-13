@@ -297,15 +297,16 @@ button, .pin-btn, .tab-btn, .btn-action, .btn-create, .btn-edit,
   }
 }
 
-/* 11 · PIN login : tighter on very small screens */
-@media (max-width: 400px) {
-  .login-card { padding: 26px 18px; }
-  .pin-grid { max-width: 230px; gap: 6px; }
-  .pin-btn { padding: 14px; font-size: 20px; }
-  .pin-display { font-size: 36px; height: 48px; }
-  .login-title { font-size: 26px; }
-}
-
+.section-header{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:8px 0 6px;margin-top:14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+.section-header:first-child{margin-top:0;border-top:none}
+.session-item.closed-item{opacity:.55}
+.btn-copy{padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;transition:all .15s}
+.btn-copy:hover{background:rgba(255,255,255,.08);color:#fff}
+.btn-copy.copied{border-color:rgba(0,210,106,.4);color:#00D26A}
+.inscrits-modal-content{margin-top:12px}
+.inscrit-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.inscrit-row:last-child{border-bottom:none}
+.star-mini{color:#FFD700;font-size:11px;letter-spacing:1px}
 </style>
 
   <!-- ===== PWA + API (ajouté pour transformer la web-app en appli installable) ===== -->
@@ -510,6 +511,21 @@ button, .pin-btn, .tab-btn, .btn-action, .btn-create, .btn-edit,
   </div>
 </div>
 
+<!-- Inscrits modal -->
+<div class="overlay" id="modal-inscrits" onclick="closeModal('modal-inscrits',event)">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px">
+      <div class="modal-title" id="inscrits-modal-title" style="margin-bottom:0">👥 Inscrits</div>
+      <button class="btn-copy" id="btn-copy-inscrits" onclick="copyInscrits()">📋 Copier</button>
+    </div>
+    <div id="inscrits-modal-count" style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:14px"></div>
+    <div id="inscrits-modal-content"><div class="empty-state" style="padding:20px 0"><div>⏳</div>Chargement…</div></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel-m" style="width:100%" onclick="closeModal('modal-inscrits')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -673,9 +689,15 @@ function renderSessions(sessions) {
   var openCount = sessions.filter(function(s) { return s.statut === "OUVERTE"; }).length;
   document.getElementById("sessions-count").textContent = openCount + " ouverte" + (openCount > 1 ? "s" : "") + " · " + sessions.length + " au total";
   if (!sessions.length) { list.innerHTML = '<div class="empty-state"><div>📋</div>Aucune session</div>'; return; }
-  list.innerHTML = sessions.map(function(s) {
+
+  var ouvertes  = sessions.filter(function(s){ return s.statut === "OUVERTE"; });
+  var planifiees = sessions.filter(function(s){ return s.statut === "PLANIFIÉE"; });
+  var fermees   = sessions.filter(function(s){ return s.statut === "FERMÉE"; });
+
+  function renderItem(s) {
     var isOpen = s.statut === "OUVERTE";
     var isPlanned = s.statut === "PLANIFIÉE";
+    var isClosed = s.statut === "FERMÉE";
     var isPizza = s.type === "Pizza";
     var dotClass = isOpen ? "open" : isPlanned ? "planned" : "closed";
     var tagStatut = isOpen ? '<span class="tag tag-open">● Ouverte</span>'
@@ -690,7 +712,8 @@ function renderSessions(sessions) {
         ? '<button class="btn-action btn-open" onclick="ouvrirSession(\'' + s.id + '\',this)">Ouvrir</button>'
         : '<button class="btn-action btn-open" onclick="ouvrirSession(\'' + s.id + '\',this)">Rouvrir</button>';
     var pizzaBtn = isPizza ? '<button class="btn-action btn-pizza" onclick="voirCommandes(\'' + s.id + '\',this)">🍕 Commandes</button>' : '';
-    return '<div class="session-item ' + (isOpen ? "open" : "") + '">'
+    var inscritsBtn = '<button class="btn-action" style="background:rgba(91,140,255,.1);color:#8090FF;border:1px solid rgba(91,140,255,.25)" onclick="voirInscrits(\'' + s.id + '\',\'' + esc(s.nom) + '\')">👥 ' + (s.presents + s.inscrits) + '</button>';
+    return '<div class="session-item ' + (isOpen ? "open" : "") + (isClosed ? " closed-item" : "") + '">'
       + '<div class="status-dot ' + dotClass + '"></div>'
       + '<div class="session-info">'
       + '<div class="session-name">' + esc(s.nom) + '</div>'
@@ -706,9 +729,24 @@ function renderSessions(sessions) {
       + '</div>'
       + codeHtml
       + '<div class="session-stats"><div class="stat-num">' + (s.presents || 0) + '</div><div class="stat-lbl">présents</div></div>'
-      + '<div class="session-btns">' + btns + pizzaBtn + '</div>'
+      + '<div class="session-btns">' + btns + pizzaBtn + inscritsBtn + '</div>'
       + '</div>';
-  }).join('');
+  }
+
+  var html = '';
+  if (ouvertes.length) {
+    html += '<div class="section-header"><span>🟢 Sessions ouvertes</span></div>';
+    html += ouvertes.map(renderItem).join('');
+  }
+  if (planifiees.length) {
+    html += '<div class="section-header"><span>🔵 Sessions planifiées</span></div>';
+    html += planifiees.map(renderItem).join('');
+  }
+  if (fermees.length) {
+    html += '<div class="section-header"><span>⚫ Sessions clôturées</span><span style="font-size:11px;color:rgba(255,255,255,.25)">' + fermees.length + '</span></div>';
+    html += fermees.map(renderItem).join('');
+  }
+  list.innerHTML = html;
 }
 
 function fermerSession(id, btn) {
@@ -904,6 +942,110 @@ function renderStats(s) {
     + '</tbody></table></div></div>';
 
   document.getElementById("stats-content").innerHTML = html;
+}
+
+// ── Inscrits session (admin) ───────────────────────────────────
+var _inscritsData = [];
+var _inscritsSessionNom = '';
+
+function voirInscrits(sessionId, sessionNom) {
+  _inscritsData = [];
+  _inscritsSessionNom = sessionNom;
+  document.getElementById('inscrits-modal-title').textContent = '👥 ' + sessionNom;
+  document.getElementById('inscrits-modal-count').textContent = '';
+  document.getElementById('inscrits-modal-content').innerHTML = '<div class="empty-state" style="padding:20px 0"><div>⏳</div>Chargement…</div>';
+  document.getElementById('btn-copy-inscrits').textContent = '📋 Copier';
+  document.getElementById('btn-copy-inscrits').className = 'btn-copy';
+  document.getElementById('modal-inscrits').classList.add('show');
+
+  // Load participants for ratings, then session details
+  google.script.run
+    .withSuccessHandler(function(parts) {
+      var ratingMap = {};
+      (parts || []).forEach(function(p){ ratingMap[p.id] = parseInt(p.rating)||0; });
+
+      google.script.run
+        .withSuccessHandler(function(r) {
+          if (!r || !r.ok) {
+            document.getElementById('inscrits-modal-content').innerHTML = '<div class="empty-state"><div>⚠️</div>' + (r&&r.msg?r.msg:'Erreur') + '</div>';
+            return;
+          }
+          var inscriptions = (r.inscriptions||[]).filter(function(p){ return p.statut !== 'ANNULÉ'; });
+          var presents  = inscriptions.filter(function(p){ return p.statut === 'PRÉSENT'; }).length;
+          var inscrits  = inscriptions.filter(function(p){ return p.statut === 'INSCRIT'; }).length;
+          var max = r.maxParticipants || 0;
+          var total = inscriptions.length;
+
+          document.getElementById('inscrits-modal-count').textContent =
+            total + (max > 0 ? ' / ' + max : '') + ' inscrit' + (total > 1 ? 's' : '')
+            + (presents ? ' · ' + presents + ' présent' + (presents > 1 ? 's' : '') : '');
+
+          if (!total) {
+            document.getElementById('inscrits-modal-content').innerHTML = '<div class="empty-state" style="padding:20px 0"><div>👥</div>Aucun inscrit</div>';
+            return;
+          }
+
+          // Store for copy
+          _inscritsData = inscriptions.map(function(p) {
+            return { p: p, rating: ratingMap[p.participantId] || 0 };
+          });
+
+          var STATUS_COLOR = {'PRÉSENT':'#00D26A','INSCRIT':'#8090FF','NO_SHOW':'#FF8078'};
+          var STATUS_ICON  = {'PRÉSENT':'✅','INSCRIT':'✓','NO_SHOW':'✗'};
+          var STARS = ['','★','★★','★★★'];
+
+          var h = '';
+          _inscritsData.forEach(function(item, i) {
+            var p = item.p;
+            var rating = item.rating;
+            var col = STATUS_COLOR[p.statut] || '#fff';
+            var ic  = STATUS_ICON[p.statut]  || '·';
+            var name = p.telegram ? esc(p.telegram) : esc(p.prenom + ' ' + p.nom);
+            var starsHtml = rating > 0 ? '<span class="star-mini">' + STARS[rating] + '</span>' : '';
+            h += '<div class="inscrit-row">'
+              + '<div style="width:22px;height:22px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">' + (i+1) + '</div>'
+              + '<div style="flex:1;min-width:0">'
+              + '<span style="font-weight:600">' + name + '</span>'
+              + (starsHtml ? '&nbsp;' + starsHtml : '')
+              + '<div style="font-size:11px;color:rgba(255,255,255,.4)">' + esc(p.section||'') + '</div>'
+              + '</div>'
+              + '<span style="font-size:12px;font-weight:700;color:' + col + '">' + ic + '</span>'
+              + '</div>';
+          });
+          document.getElementById('inscrits-modal-content').innerHTML = h;
+        })
+        .getSessionDetails(adminToken, sessionId);
+    })
+    .getParticipants();
+}
+
+function copyInscrits() {
+  if (!_inscritsData.length) return;
+  var STARS = ['','★','★★','★★★'];
+  var lines = ['📋 ' + _inscritsSessionNom, ''];
+  _inscritsData.forEach(function(item, i) {
+    var p = item.p;
+    var name = p.telegram || (p.prenom + ' ' + p.nom);
+    var stars = item.rating > 0 ? ' ' + STARS[item.rating] : '';
+    var statut = p.statut === 'PRÉSENT' ? '✅' : p.statut === 'INSCRIT' ? '✓' : '✗';
+    lines.push((i+1) + '. ' + name + stars + ' — ' + statut);
+  });
+  var text = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      var btn = document.getElementById('btn-copy-inscrits');
+      btn.textContent = '✅ Copié !';
+      btn.className = 'btn-copy copied';
+      setTimeout(function(){ btn.textContent = '📋 Copier'; btn.className = 'btn-copy'; }, 2000);
+    });
+  } else {
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ Copié !');
+  }
 }
 
 // ── Matchs PFC ────────────────────────────────────────────────
