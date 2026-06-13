@@ -985,9 +985,15 @@ function voirInscrits(sessionId, sessionNom) {
             return;
           }
 
-          // Store for copy
+          // Store for copy — triés 3★ > 2★ > 1★ > 0★ puis alphabétique
           _inscritsData = inscriptions.map(function(p) {
             return { p: p, rating: ratingMap[p.participantId] || 0 };
+          });
+          _inscritsData.sort(function(a, b) {
+            if (b.rating !== a.rating) return b.rating - a.rating;
+            var nameA = (a.p.telegram || (a.p.prenom + ' ' + a.p.nom)).toLowerCase();
+            var nameB = (b.p.telegram || (b.p.prenom + ' ' + b.p.nom)).toLowerCase();
+            return nameA.localeCompare(nameB, 'fr');
           });
 
           var STATUS_COLOR = {'PRÉSENT':'#00D26A','INSCRIT':'#8090FF','NO_SHOW':'#FF8078'};
