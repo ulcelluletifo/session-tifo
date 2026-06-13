@@ -854,13 +854,13 @@ min-height: 48px;
 touch-action: manipulation;
 }
 .btn-inscrits:active { transform: scale(.98); }
-/* ── v6 : scroll déroulant fluide ── */
-.tab-content { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
-#tab-upcoming, #tab-past, #tab-calendar,
-#atab-sessions, #atab-participants, #atab-stats, #atab-matchs {
-scroll-behavior: smooth;
-overscroll-behavior-y: contain;
-}
+/* ── Star rating (admin only) ── */
+.star-rating { display:flex; gap:3px; }
+.star-btn { background:none; border:none; font-size:20px; cursor:pointer; padding:2px; line-height:1; transition:transform .1s; }
+.star-btn:active { transform:scale(1.25); }
+.star-filled { color:#FFD700; }
+.star-empty  { color:rgba(255,255,255,.2); }
+.stars-display { font-size:13px; letter-spacing:1px; }
 </style>
 
   
@@ -884,8 +884,7 @@ overscroll-behavior-y: contain;
       <div class="app-title">Session Tifo</div>
       <div class="app-sub">Saison 2026 — 2027</div>
       <div id="login-alert" class="alert"></div>
-      <div class="field"><label>Nom</label><input id="l-nom" type="text" placeholder="ex. MARTIN" autocomplete="family-name" autocapitalize="characters" autocomplete="family-name" /></div>
-      <div class="field"><label>Prénom</label><input id="l-prenom" type="text" placeholder="ex. SOPHIE" autocomplete="given-name" autocapitalize="characters" autocomplete="given-name" /></div>
+      <div class="field"><label>Nom Telegram</label><input id="l-telegram" type="text" placeholder="ex. Remi VF ou @sophie_m" autocomplete="username" autocapitalize="none" /></div>
       <div class="field"><label>Mot de passe</label><input id="l-pw" type="password" placeholder="••••••••" /></div>
       <button id="l-btn" class="btn btn-primary" onclick="doLogin()">Se connecter →</button>
       <div class="register-link">Pas encore inscrit ? <button onclick="go('screen-register')">S'inscrire</button></div>
@@ -1140,6 +1139,15 @@ overscroll-behavior-y: contain;
           <span>🔒 Bloquer l'accès</span>
         </label>
       </div>
+      <div style="padding:6px 0 10px">
+        <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px">Niveau d'implication ★</label>
+        <div class="star-rating" id="pe-stars">
+          <button class="star-btn star-empty" onclick="setPartRating(1)" data-star="1">★</button>
+          <button class="star-btn star-empty" onclick="setPartRating(2)" data-star="2">★</button>
+          <button class="star-btn star-empty" onclick="setPartRating(3)" data-star="3">★</button>
+        </div>
+        <div id="pe-rating-label" style="font-size:11px;color:rgba(255,255,255,.35);margin-top:4px">Aucune notation</div>
+      </div>
     </div>
     <div style="display:flex;gap:9px">
       <button onclick="document.getElementById('modal-part-edit').classList.remove('show')" style="flex:1;padding:12px;border-radius:9px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-size:14px;font-weight:700;cursor:pointer">Annuler</button>
@@ -1322,12 +1330,11 @@ let selectedPizza="", selectedDrink="", selectedSection="";
 function sanitizeName(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z \-]/g,"").toUpperCase();}
 
 function doLogin(){
-  const nom=document.getElementById("l-nom").value.trim();
-  const prenom=document.getElementById("l-prenom").value.trim();
+  const telegram=document.getElementById("l-telegram").value.trim();
   const pw=document.getElementById("l-pw").value;
   const btn=document.getElementById("l-btn");
   hideAlert("login-alert");
-  if(!nom||!prenom||!pw){showAlert("login-alert","Remplissez tous les champs.","error");return;}
+  if(!telegram||!pw){showAlert("login-alert","Remplissez tous les champs.","error");return;}
   btn.disabled=true; btn.innerHTML="Connexion<span class='loading-dots'></span>";
   google.script.run
     .withSuccessHandler(function(r){
@@ -1347,15 +1354,17 @@ function doLogin(){
       btn.disabled=false; btn.textContent="Se connecter →";
       showAlert("login-alert","Erreur de connexion.","error");
     })
-    .login(sanitizeName(nom),sanitizeName(prenom),pw);
+    .loginByTelegram(telegram,pw);
 }
 
 function doLogout(){
   google.script.run.logout(token);
   token=""; isAdmin=false; userId="";
+  window._pastLoaded=false; window._calLoaded=false;
   document.getElementById("tab-btn-admin").style.display="none";
   go("screen-login");
   document.getElementById("l-pw").value="";
+  document.getElementById("l-telegram").value="";
 }
 
 function doRegister(){
@@ -1406,7 +1415,6 @@ function admVoirInscrits(btn) {
       }
       var inscriptions=(r.inscriptions||[]).filter(function(p){return p.statut!=='ANNULÉ';});
       var presents=inscriptions.filter(function(p){return p.statut==='PRÉSENT';}).length;
-      var inscrits=inscriptions.filter(function(p){return p.statut==='INSCRIT';}).length;
       var max=r.maxParticipants||0;
       var total=inscriptions.length;
       document.getElementById('inscrits-count').textContent=
@@ -1416,19 +1424,42 @@ function admVoirInscrits(btn) {
         document.getElementById('inscrits-content').innerHTML='<div class="empty-state" style="padding:24px 0"><div>👥</div>Aucun inscrit</div>';
         return;
       }
+      // Build a quick lookup of participant ratings from admAllParts
+      var ratingMap={};
+      admAllParts.forEach(function(ap){ ratingMap[ap.id]=parseInt(ap.rating)||0; });
+      // Count by star level
+      var star1=0,star2=0,star3=0;
+      inscriptions.forEach(function(p){
+        var r=ratingMap[p.participantId]||0;
+        if(r===1) star1++; else if(r===2) star2++; else if(r===3) star3++;
+      });
       var STATUS_COLOR={'PRÉSENT':'#00D26A','INSCRIT':'#8090FF','NO_SHOW':'#FF8078'};
       var STATUS_ICON={'PRÉSENT':'✅','INSCRIT':'✓','NO_SHOW':'✗'};
-      var h='';
+      // Star recap banner
+      var recapHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">';
+      function starBadge(count,filled,color){
+        var s=''; for(var i=0;i<3;i++) s+=(i<filled?'★':'☆');
+        return '<div style="flex:1;min-width:60px;text-align:center;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.18);border-radius:9px;padding:8px 4px">'
+          +'<div style="font-size:15px;color:#FFD700">'+s+'</div>'
+          +'<div style="font-size:20px;font-weight:700;color:#fff;line-height:1.1">'+count+'</div>'
+          +'</div>';
+      }
+      recapHtml+=starBadge(star1,1)+starBadge(star2,2)+starBadge(star3,3);
+      recapHtml+='</div>';
+      var h=recapHtml;
       inscriptions.forEach(function(p,i){
         var col=STATUS_COLOR[p.statut]||'#fff';
         var ic=STATUS_ICON[p.statut]||'·';
         var displayName=p.telegram?esc(p.telegram):(esc(p.prenom)+' '+esc(p.nom));
         var pizza=isPizza&&p.pizza&&p.pizza!=='Je ne mange pas'
           ?'<span style="font-size:10px;color:#FF9500;display:block">🍕 '+esc(p.pizza)+'</span>':'';
+        var rating=ratingMap[p.participantId]||0;
+        var starsStr='';
+        if(rating>0){ for(var si=0;si<3;si++) starsStr+=(si<rating?'<span style="color:#FFD700;font-size:11px">★</span>':'<span style="color:rgba(255,255,255,.15);font-size:11px">★</span>'); }
         h+='<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">'
           +'<div style="width:24px;height:24px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+(i+1)+'</div>'
           +'<div style="flex:1;min-width:0">'
-          +'<div style="font-size:14px;font-weight:600">'+displayName+'</div>'
+          +'<div style="font-size:14px;font-weight:600">'+displayName+(starsStr?'&nbsp;'+starsStr:'')+'</div>'
           +'<div style="font-size:11px;color:rgba(255,255,255,.4)">'+esc(p.section||'')+'</div>'
           +pizza
           +'</div>'
@@ -1459,8 +1490,8 @@ function switchTab(tab){
   var el=document.getElementById("tab-"+tab);
   if(el) el.classList.add("active");
   if(tab==="upcoming") loadUpcoming();
-  if(tab==="past") loadPast();
-  if(tab==="calendar") loadCalendar();
+  if(tab==="past" && !window._pastLoaded){ window._pastLoaded=true; loadPast(); }
+  if(tab==="calendar" && !window._calLoaded){ window._calLoaded=true; loadCalendar(); }
   if(tab==="admin") loadAdminSessions();
 }
 
@@ -1665,7 +1696,8 @@ function confirmerValidation(){
           document.getElementById("success-title").textContent="Présence validée !";
           document.getElementById("success-sub").textContent=r.msg;
           go("screen-success");
-          loadUpcoming();
+          // Force screen-success visible before async reload
+          requestAnimationFrame(function(){ loadUpcoming(); });
         }
       } else {
         document.getElementById("modal-code").classList.add("show");
@@ -1717,7 +1749,8 @@ function confirmerPizza(){
       const recap=selectedDrink?"🍕 "+selectedPizza+" + 🍺 "+selectedDrink:"🍕 "+selectedPizza;
       document.getElementById("success-title").textContent="C'est bon !";
       document.getElementById("success-sub").textContent="Présence validée ! "+recap;
-      go("screen-success"); loadUpcoming();
+      go("screen-success");
+      requestAnimationFrame(function(){ loadUpcoming(); });
     })
     .withFailureHandler(function(){btn.disabled=false;btn.textContent="Valider ma commande →";showAlert("pizza-alert","Erreur.","error");})
     .savePizzaChoice(token,pendingPresenceId,commande);
@@ -2101,6 +2134,7 @@ function loadAdminSessions() {
         +'<button onclick="admVoirInscrits(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);font-size:12px;cursor:pointer" title="Liste inscrits">👥 '+s.presents+'+'+s.inscrits+'</button>'
         +'<button onclick="admEditSession(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:12px;cursor:pointer" title="Modifier">✏️</button>'
         +(s.type==="Pizza"?'<button onclick="admVoirCommandes(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,149,0,.3);background:rgba(255,149,0,.08);color:#FF9500;font-size:12px;cursor:pointer" title="Commandes pizza">🍕</button>':"")
+        +(isOpen?'<button onclick="admDeleteSession(this)" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,59,48,.3);background:rgba(255,59,48,.08);color:#FF8078;font-size:12px;cursor:pointer" title="Supprimer">🗑</button>':"")
         +'<button onclick="admAction(this)" style="padding:7px 14px;border-radius:7px;border:1px solid '+(isOpen?"rgba(255,59,48,.3)":"rgba(0,210,106,.3)")+';background:'+(isOpen?"rgba(255,59,48,.12)":"rgba(0,210,106,.1)")+';color:'+(isOpen?"#FF8078":"#00D26A")+';font-size:13px;font-weight:700;cursor:pointer">'+(isOpen?"Fermer":"Ouvrir")+'</button>'
         +'</div>'
           +'</div></div>';
@@ -2112,22 +2146,23 @@ function loadAdminSessions() {
 }
 var _sessEditCache = {};
 
-function admAction(btn) {
+function admDeleteSession(btn) {
   var card=btn.closest("[data-sid]");
   var sid=card.getAttribute("data-sid");
-  var isOpen=card.getAttribute("data-open")==="true";
+  var s=_sessCache.find(function(x){return x.id===sid;});
+  var name=s?s.nom:"cette session";
+  if(!confirm("⚠️ Supprimer définitivement \""+name+"\" ?\nCette action est irréversible.")) return;
   btn.disabled=true; btn.textContent="…";
-  if(isOpen){
-    google.script.run.withSuccessHandler(function(){loadAdminSessions();}).closeSession(token,sid);
-  } else {
-    google.script.run.withSuccessHandler(function(r){
-      if(r&&r.ok&&r.code) alert("✅ Session ouverte — Code : "+r.code);
-      loadAdminSessions();
-    }).openSession(token,sid);
-  }
+  google.script.run
+    .withSuccessHandler(function(r){
+      if(r&&r.ok) loadAdminSessions();
+      else { btn.disabled=false; btn.textContent="🗑"; alert(r&&r.msg?r.msg:"Erreur suppression"); }
+    })
+    .withFailureHandler(function(){ btn.disabled=false; btn.textContent="🗑"; })
+    .deleteSession(token, sid);
 }
 
-function loadAdminParts() {
+function loadAdminParts() { {
   if(!isAdmin){ return; }
   document.getElementById("adm-part-list").innerHTML='<div class="empty-state"><div>⏳</div>Chargement…</div>';
   google.script.run
@@ -2154,8 +2189,13 @@ function renderAdminParts(data) {
     var blkBorder=p.blocked?"rgba(0,210,106,.3)":"rgba(255,59,48,.3)";
     var blkBg=p.blocked?"rgba(0,210,106,.08)":"rgba(255,59,48,.08)";
     var blkColor=p.blocked?"#00D26A":"#FF8078";
+    var starsHtml = "";
+    if(p.rating && p.rating > 0){
+      var s=""; for(var si=0;si<3;si++) s+=(si<p.rating?'<span style="color:#FFD700">★</span>':'<span style="color:rgba(255,255,255,.15)">★</span>');
+      starsHtml='<span style="font-size:14px;letter-spacing:1px">'+s+'</span>';
+    }
     h+='<div style="background:rgba(255,255,255,.04);border:1px solid '+borderColor+';border-radius:11px;padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px"'
-      +' data-pid="'+esc(p.id)+'" data-blocked="'+p.blocked+'" data-isadmin="'+p.isAdmin+'" data-name="'+esc(p.nom)+' '+esc(p.prenom)+'">'
+      +' data-pid="'+esc(p.id)+'" data-blocked="'+p.blocked+'" data-isadmin="'+p.isAdmin+'" data-name="'+esc(p.nom)+' '+esc(p.prenom)+'" data-rating="'+(p.rating||0)+'">'
       +'<div style="width:34px;height:34px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">'+esc((p.nom||"?")[0])+'</div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:14px;font-weight:700">'
@@ -2163,6 +2203,7 @@ function renderAdminParts(data) {
       +(p.blocked?'<span style="color:#FF8078;font-size:10px;margin-right:4px">🔒</span>':'')
       +esc(p.nom)+" "+esc(p.prenom)+'</div>'
       +'<div style="font-size:11px;color:rgba(255,255,255,.4)">'+esc(p.telegram||"—")+" · "+esc(p.section||"—")+'</div>'
+      +(starsHtml?'<div style="margin-top:3px">'+starsHtml+'</div>':'')
       +'</div>'
       +'<div style="font-size:18px;font-weight:700;color:rgba(255,255,255,.6);min-width:28px;text-align:center">'+p.sessions+'</div>'
       +'<button onclick="openPartEdit(this)" style="padding:6px 14px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);font-size:12px;font-weight:700;cursor:pointer">✏ Modifier</button>'
@@ -2175,6 +2216,21 @@ function filterAdminParts() {
   if(!q){renderAdminParts(admAllParts);return;}
   renderAdminParts(admAllParts.filter(function(p){return(p.nom+" "+p.prenom+" "+p.telegram+" "+p.section).toLowerCase().includes(q);}));
 }
+var _currentPartRating = 0;
+var RATING_LABELS = ["", "★ Actif", "★★ Impliqué", "★★★ Pilier"];
+
+function setPartRating(n) {
+  _currentPartRating = (_currentPartRating === n) ? 0 : n; // toggle off if same
+  renderPartStars();
+}
+function renderPartStars() {
+  var stars = document.querySelectorAll("#pe-stars .star-btn");
+  stars.forEach(function(btn, i) {
+    btn.className = "star-btn " + (i < _currentPartRating ? "star-filled" : "star-empty");
+  });
+  document.getElementById("pe-rating-label").textContent = RATING_LABELS[_currentPartRating] || "Aucune notation";
+}
+
 function openPartEdit(btn) {
   var card=btn.closest("[data-pid]");
   var id=card.getAttribute("data-pid");
@@ -2189,6 +2245,8 @@ function openPartEdit(btn) {
   document.getElementById("pe-admin").checked=!!p.isAdmin;
   document.getElementById("pe-blocked").checked=!!p.blocked;
   document.getElementById("pe-hasPw").textContent=p.hasPassword?"(mot de passe défini)":"(aucun mot de passe)";
+  _currentPartRating = parseInt(p.rating)||0;
+  renderPartStars();
   document.getElementById("modal-part-edit").classList.add("show");
 }
 function savePartEdit() {
@@ -2209,13 +2267,19 @@ function savePartEdit() {
     document.getElementById("modal-part-edit").classList.remove("show");
     loadAdminParts();
   }
+  function setRating(){
+    var p=admAllParts.find(function(x){return x.id===id;});
+    if(_currentPartRating !== (parseInt(p&&p.rating)||0)){
+      google.script.run.withSuccessHandler(done).setParticipantRating(token, id, _currentPartRating);
+    } else done();
+  }
   function setBlocked(){
     var p=admAllParts.find(function(x){return x.id===id;});
     if(p && p.blocked!==isBlocked){
-      var runner=google.script.run.withSuccessHandler(done);
+      var runner=google.script.run.withSuccessHandler(setRating);
       if(isBlocked) runner.blockUser(token,id);
       else runner.unblockUser(token,id);
-    } else done();
+    } else setRating();
   }
   function setAdmin(){
     var p=admAllParts.find(function(x){return x.id===id;});
