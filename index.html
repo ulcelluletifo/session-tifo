@@ -1761,11 +1761,9 @@ function confirmerValidation(){
           pendingPresenceId=r.presenceId;
           ouvrirModalPizza();
         } else {
-          document.getElementById("success-title").textContent="Présence validée !";
-          document.getElementById("success-sub").textContent=r.msg;
-          go("screen-success");
-          // Force screen-success visible before async reload
-          requestAnimationFrame(function(){ loadUpcoming(); });
+          go("screen-app");
+          switchTab("upcoming");
+          showToastSuccess("✅ Présence validée !");
         }
       } else {
         document.getElementById("modal-code").classList.add("show");
@@ -1815,10 +1813,9 @@ function confirmerPizza(){
       btn.disabled=false; btn.textContent="Valider ma commande →";
       document.getElementById("modal-pizza").classList.remove("show");
       const recap=selectedDrink?"🍕 "+selectedPizza+" + 🍺 "+selectedDrink:"🍕 "+selectedPizza;
-      document.getElementById("success-title").textContent="C'est bon !";
-      document.getElementById("success-sub").textContent="Présence validée ! "+recap;
-      go("screen-success");
-      requestAnimationFrame(function(){ loadUpcoming(); });
+      go("screen-app");
+      switchTab("upcoming");
+      showToastSuccess("✅ Présence validée ! "+recap);
     })
     .withFailureHandler(function(){btn.disabled=false;btn.textContent="Valider ma commande →";showAlert("pizza-alert","Erreur.","error");})
     .savePizzaChoice(token,pendingPresenceId,commande);
@@ -2668,6 +2665,18 @@ function showAlert(id,msg,type){const el=document.getElementById(id);el.textCont
 function hideAlert(id){const el=document.getElementById(id);if(el)el.style.display="none";}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 
+function showToastSuccess(msg) {
+  var t = document.getElementById("toast-success");
+  if(!t) return;
+  t.textContent = msg;
+  t.style.opacity = "1";
+  t.style.transform = "translateX(-50%) translateY(0)";
+  setTimeout(function(){
+    t.style.opacity = "0";
+    t.style.transform = "translateX(-50%) translateY(20px)";
+  }, 3000);
+}
+
 initLogos();
 document.addEventListener("keydown",function(e){
   if(e.key!=="Enter") return;
@@ -2722,6 +2731,7 @@ window.goToAdmin = function(){ location.href = 'admin.html'; };
     <button onclick="document.getElementById('modal-inscrits').classList.remove('show')" style="width:100%;margin-top:16px;padding:13px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.5);font-size:15px;font-weight:700;cursor:pointer">Fermer</button>
   </div>
 </div>
+<div id="toast-success" style="position:fixed;bottom:calc(var(--nav-h) + var(--safe-bot) + 16px);left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,210,106,.95);color:#fff;padding:13px 22px;border-radius:12px;font-size:15px;font-weight:700;z-index:500;opacity:0;transition:opacity .3s,transform .3s;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,210,106,.4)"></div>
 
 </body>
 </html>
