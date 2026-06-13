@@ -2162,7 +2162,7 @@ function admDeleteSession(btn) {
     .deleteSession(token, sid);
 }
 
-function loadAdminParts() { {
+function loadAdminParts() {
   if(!isAdmin){ return; }
   document.getElementById("adm-part-list").innerHTML='<div class="empty-state"><div>⏳</div>Chargement…</div>';
   google.script.run
@@ -2656,4 +2656,3 @@ window.goToAdmin = function(){ location.href = 'admin.html'; };
 
 </body>
 </html>
-<!-- Ceci est un commentaire HTML -->
